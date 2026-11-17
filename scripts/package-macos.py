@@ -80,12 +80,62 @@ def build_executable(root, metadata):
     return Path(metadata["target_directory"]) / TARGET / "release" / "dotvar"
 
 
-def create_app(app, executable, icon, version, identity):
+def write_notices(root, resources):
+    metadata = json.loads(subprocess.check_output([
+        "cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", TARGET,
+    ], cwd=root))
+    packages = {package["id"]: package for package in metadata["packages"]}
+    nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+    pending = [next(package["id"] for package in packages.values() if package["name"] == "env-desktop")]
+    dependencies = set()
+    while pending:
+        package_id = pending.pop()
+        if package_id in dependencies:
+            continue
+        dependencies.add(package_id)
+        pending.extend(dependency["pkg"] for dependency in nodes[package_id]["deps"]
+                       if any(kind["kind"] is None for kind in dependency["dep_kinds"]))
+
+    notices = resources / "Licenses"
+    notices.mkdir()
+    for relative_path in (
+        "LICENSE", "THIRD_PARTY_NOTICES.md", "docs/dependency-license-supplements.txt",
+        "crates/env-desktop/assets/services/LICENSE.svgl",
+    ):
+        shutil.copyfile(root / relative_path, notices / Path(relative_path).name)
+
+    texts = {}
+    index = ["Rust dependency licenses and corresponding sources for Dotvar on macOS.", ""]
+    name_pattern = re.compile(r"^(licen[cs]e|copying|copyright|notice|unlicense)([._-]|$)", re.I)
+    external = (packages[package_id] for package_id in dependencies if packages[package_id]["source"])
+    for package in sorted(external, key=lambda item: (item["name"], item["version"])):
+        name, version = package["name"], package["version"]
+        directory = Path(package["manifest_path"]).parent
+        files = {path for path in directory.iterdir() if path.is_file() and name_pattern.match(path.name)}
+        if package["license_file"]:
+            files.add(directory / package["license_file"])
+        references = []
+        for path in sorted(files):
+            contents = path.read_bytes()
+            if contents not in texts:
+                texts[contents] = f"{name}-{version}-{path.name}"
+                (notices / texts[contents]).write_bytes(contents)
+            references.append(texts[contents])
+        index.extend([
+            f"{name} {version} ({package['license'] or 'see the license file'})",
+            f"Source: https://crates.io/crates/{name}/{version}/download",
+            "License texts: " + (", ".join(references) or "see dependency-license-supplements.txt"),
+            "",
+        ])
+    (notices / "DEPENDENCIES.txt").write_text("\n".join(index), encoding="utf-8")
+
+
+def create_app(app, executable, root, version, identity):
     contents = app / "Contents"
     (contents / "MacOS").mkdir(parents=True)
     (contents / "Resources").mkdir()
     shutil.copy2(executable, contents / "MacOS" / "dotvar")
-    shutil.copy2(icon, contents / "Resources" / "Dotvar.icns")
+    shutil.copy2(root / "assets" / "Dotvar.icns", contents / "Resources" / "Dotvar.icns")
     with (contents / "Info.plist").open("wb") as plist:
         plistlib.dump({
             "CFBundleDisplayName": "Dotvar",
@@ -99,6 +149,8 @@ def create_app(app, executable, icon, version, identity):
             "LSMinimumSystemVersion": MINIMUM_MACOS,
             "NSHighResolutionCapable": True,
         }, plist)
+    if identity != "-":
+        write_notices(root, contents / "Resources")
     signing_options = ["--timestamp", "--options", "runtime"] if identity != "-" else []
     subprocess.run(["codesign", "--force", "--sign", identity, *signing_options, app], check=True)
     subprocess.run(["codesign", "--verify", "--deep", "--strict", app], check=True)
@@ -187,7 +239,7 @@ def package(root, output, signing=None):
         work = Path(directory)
         source = work / "volume"
         app = source / APP_NAME
-        create_app(app, executable, root / "assets" / "Dotvar.icns", version, identity)
+        create_app(app, executable, root, version, identity)
         result = app
         if credentials:
             result = create_distribution(work, source, version, identity, credentials)

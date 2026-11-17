@@ -6,6 +6,8 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-17
+
 ### Added
 
 - Native macOS editor for `.env` files with remembered projects and tabs.
@@ -14,5 +16,7 @@ This file tracks notable changes to Dotvar. It follows
 - Offline service detection with bundled icons and colors to distinguish environments.
 - File watching with conflict handling that preserves unsaved edits and lets you save a separate copy.
 - English and Spanish interface options, with a setting to follow the system language.
+- Signed and notarized macOS installer for Apple Silicon, with a SHA-256 checksum.
 
-[Unreleased]: https://github.com/nicoandrade/dotvar/commits/master/
+[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.1.0...master
+[0.1.0]: https://github.com/nicoandrade/dotvar/releases/tag/v0.1.0
