@@ -1,0 +1,798 @@
+{
+  "source": "https://svgl.app/",
+  "catalog": "https://api.svgl.app",
+  "retrieved_on": "2026-11-16",
+  "selection": "Original catalog symbols only; dark variant when supplied. Wordmarks without a separate symbol are omitted. Original SVG bytes are unchanged.",
+  "assets": [
+    {
+      "variant": "PlanetScale",
+      "title": "PlanetScale",
+      "filename": "planet_scale.svg",
+      "source_url": "https://svgl.app/library/planetscale_dark.svg",
+      "brand_url": "https://planetscale.com/",
+      "svgl_id": 163,
+      "sha256": "cba6b59b8cd79e9b4d9e29a3649371b69c15a7caac539072235e4e71afdf35c2",
+      "view_box": "0 0 256 256"
+    },
+    {
+      "variant": "BetterAuth",
+      "title": "Better Auth",
+      "filename": "better_auth.svg",
+      "source_url": "https://svgl.app/library/better-auth_dark.svg",
+      "brand_url": "https://www.better-auth.com/",
+      "svgl_id": 580,
+      "sha256": "e18ef264abb7a7dc93381fb4843c9cc0dbf64703ab2741b7235b8016b40b5285",
+      "view_box": "0 0 500 500"
+    },
+    {
+      "variant": "Resend",
+      "title": "Resend",
+      "filename": "resend.svg",
+      "source_url": "https://svgl.app/library/resend-icon-white.svg",
+      "brand_url": "https://resend.com/brand",
+      "svgl_id": 457,
+      "sha256": "9d6a386b319b8d0f421918e270f843d9996e31021fad9e41bc4c10a8882b9908",
+      "view_box": "0 0 1800 1800"
+    },
+    {
+      "variant": "Vercel",
+      "title": "Vercel",
+      "filename": "vercel.svg",
+      "source_url": "https://svgl.app/library/vercel_dark.svg",
+      "brand_url": "https://vercel.com/geist/brands",
+      "svgl_id": 562,
+      "sha256": "a9ae5ad4ea10c39122cc6b07927132f9c684dd2f1a7bef5337b0eb7364e139ae",
+      "view_box": "0 0 256 222"
+    },
+    {
+      "variant": "Upstash",
+      "title": "Upstash",
+      "filename": "upstash.svg",
+      "source_url": "https://svgl.app/library/upstash.svg",
+      "brand_url": "https://upstash.com/brand",
+      "svgl_id": 229,
+      "sha256": "b100d0e1ca0cb721cd5375272321d94ba2a5d2c262d36d8f785ef2d58234758c",
+      "view_box": "0 0 256 341"
+    },
+    {
+      "variant": "Supabase",
+      "title": "Supabase",
+      "filename": "supabase.svg",
+      "source_url": "https://svgl.app/library/supabase.svg",
+      "brand_url": "https://supabase.com/brand-assets",
+      "svgl_id": 453,
+      "sha256": "1f9387ffd2d8bea4b535f13f12c34b4b4c2df7ee0e5eefe1f532bbda0a3ce969",
+      "view_box": "0 0 109 113"
+    },
+    {
+      "variant": "Neon",
+      "title": "Neon",
+      "filename": "neon.svg",
+      "source_url": "https://svgl.app/library/neon.svg",
+      "brand_url": "https://neon.com/",
+      "svgl_id": 260,
+      "sha256": "3af6fa33e85ad9dff82abf21f3a0eb1ffe01d5e2d221c250857e74078aef34c2",
+      "view_box": "0 0 64 64"
+    },
+    {
+      "variant": "Turso",
+      "title": "Turso",
+      "filename": "turso.svg",
+      "source_url": "https://svgl.app/library/turso-dark.svg",
+      "brand_url": "https://turso.tech",
+      "svgl_id": 462,
+      "sha256": "df2a5795079800728bd9a3823724de73c5d04aeb53900ebe2493a5c666c142d4",
+      "view_box": "0 0 201 170"
+    },
+    {
+      "variant": "MongoDb",
+      "title": "MongoDB",
+      "filename": "mongo_db.svg",
+      "source_url": "https://svgl.app/library/mongodb-icon-dark.svg",
+      "brand_url": "https://www.mongodb.com/company/newsroom/brand-resources",
+      "svgl_id": 107,
+      "sha256": "43c4f5a1261601683e1403e9f4a5497b6fe0ee17448b5b12dfb289e7b637b770",
+      "view_box": "0 0 120 257"
+    },
+    {
+      "variant": "PostgreSql",
+      "title": "PostgreSQL",
+      "filename": "postgre_sql.svg",
+      "source_url": "https://svgl.app/library/postgresql.svg",
+      "brand_url": "https://www.postgresql.org/",
+      "svgl_id": 187,
+      "sha256": "dc6bb4376a5cf235b19a8871f3219c2b98d97e4469309c8bbecb86ff1811f506",
+      "view_box": "0 0 432.071 445.383"
+    },
+    {
+      "variant": "MySql",
+      "title": "MySQL",
+      "filename": "my_sql.svg",
+      "source_url": "https://svgl.app/library/mysql-icon-dark.svg",
+      "brand_url": "https://www.mysql.com/about/legal/logos.html",
+      "svgl_id": 184,
+      "sha256": "d666d07efc294db49dc2c794d689dbae17878b7049aaa49f9c0339a81f525ab9",
+      "view_box": "0 0 256 252"
+    },
+    {
+      "variant": "Redis",
+      "title": "Redis",
+      "filename": "redis.svg",
+      "source_url": "https://svgl.app/library/redis.svg",
+      "brand_url": "https://redis.io/",
+      "svgl_id": 190,
+      "sha256": "0588a304be52b7a96f531268ea68624d504d4c93175e41d2feba7bce9ae22fbb",
+      "view_box": "0 0 256 220"
+    },
+    {
+      "variant": "Convex",
+      "title": "Convex",
+      "filename": "convex.svg",
+      "source_url": "https://svgl.app/library/convex.svg",
+      "brand_url": "https://www.convex.dev/",
+      "svgl_id": 586,
+      "sha256": "4dafe466c51191efc7c1da64f7a8f46157d7aa5631f5d96e84a9e39abc3d1f17",
+      "view_box": "28 28 128 132"
+    },
+    {
+      "variant": "Firebase",
+      "title": "Firebase",
+      "filename": "firebase.svg",
+      "source_url": "https://svgl.app/library/firebase.svg",
+      "brand_url": "https://firebase.google.com/",
+      "svgl_id": 521,
+      "sha256": "d7237deed92953b176ebf4d2010b121efecaa381fc3469cd879d2f99d8b18d8b",
+      "view_box": "0 0 600 600"
+    },
+    {
+      "variant": "Appwrite",
+      "title": "Appwrite",
+      "filename": "appwrite.svg",
+      "source_url": "https://svgl.app/library/appwrite.svg",
+      "brand_url": "https://appwrite.io/",
+      "svgl_id": 237,
+      "sha256": "fff96e40f8a078b63f92eaaf30ec1e145d97c282015057c66eed048c204cd2d0",
+      "view_box": "0 0 90 91"
+    },
+    {
+      "variant": "Clerk",
+      "title": "Clerk",
+      "filename": "clerk.svg",
+      "source_url": "https://svgl.app/library/clerk-icon-dark.svg",
+      "brand_url": "https://clerk.com/design",
+      "svgl_id": 587,
+      "sha256": "d62d8a4fe8e22c34235c0934a73ec48321bba42d4d26df39de887eb489d87f36",
+      "view_box": "0 0 128 128"
+    },
+    {
+      "variant": "Auth0",
+      "title": "Auth0",
+      "filename": "auth0.svg",
+      "source_url": "https://svgl.app/library/auth0.svg",
+      "brand_url": "https://auth0.com/",
+      "svgl_id": 170,
+      "sha256": "b7cc3f0d713d27679388cbc815f751eb7154ef15fcb0d0d7be7d38427a7e7359",
+      "view_box": "0 0 24 24"
+    },
+    {
+      "variant": "AuthJs",
+      "title": "Auth.js",
+      "filename": "auth_js.svg",
+      "source_url": "https://svgl.app/library/authjs.svg",
+      "brand_url": "https://authjs.dev",
+      "svgl_id": 171,
+      "sha256": "25e796039625e22cf4bd938fc715b805fca19a2f71a27411ddffd667a0fc7610",
+      "view_box": "0 0 210 232"
+    },
+    {
+      "variant": "WorkOs",
+      "title": "WorkOS",
+      "filename": "work_os.svg",
+      "source_url": "https://svgl.app/library/workos-light.svg",
+      "brand_url": "https://workos.com/",
+      "svgl_id": 67,
+      "sha256": "b1744548e1975e820bb75a4bbb4150fae5433297607d16cee5860a8e1543e387",
+      "view_box": "0 0 55.4 48"
+    },
+    {
+      "variant": "Keycloak",
+      "title": "Keycloak",
+      "filename": "keycloak.svg",
+      "source_url": "https://svgl.app/library/keycloak.svg",
+      "brand_url": "https://keycloak.org",
+      "svgl_id": 556,
+      "sha256": "8da437b63f6f0c3cc490eafeabeaab676652d3a3e251bc05a88ba768eade92f5",
+      "view_box": "0 0 168 151"
+    },
+    {
+      "variant": "Stripe",
+      "title": "Stripe",
+      "filename": "stripe.svg",
+      "source_url": "https://svgl.app/library/stripe.svg",
+      "brand_url": "https://stripe.com/",
+      "svgl_id": 656,
+      "sha256": "d1dd829f330c3c17a02c7356e2e41f77f6ecad3f72a9b2bf11b649703c66e30a",
+      "view_box": "100 100 312 312"
+    },
+    {
+      "variant": "PayPal",
+      "title": "PayPal",
+      "filename": "pay_pal.svg",
+      "source_url": "https://svgl.app/library/paypal.svg",
+      "brand_url": "https://paypal.com",
+      "svgl_id": 25,
+      "sha256": "be46ba3ede93ac6d513f00947d6aba825e450497b1a47a8bd408e90d6ee829c7",
+      "view_box": "7.056000232696533 3 37.35095977783203 45"
+    },
+    {
+      "variant": "MercadoPago",
+      "title": "Mercado Pago",
+      "filename": "mercado_pago.svg",
+      "source_url": "https://svgl.app/library/mercado-pago.svg",
+      "brand_url": "https://www.mercadopago.com/developers/",
+      "svgl_id": 42,
+      "sha256": "4299ec11af9344b4fb538af06e1a5f3a66bb3d7d037a8ff9862e6cd64d405a09",
+      "view_box": "0 0 150 104"
+    },
+    {
+      "variant": "Polar",
+      "title": "Polar",
+      "filename": "polar.svg",
+      "source_url": "https://svgl.app/library/polar-sh_dark.svg",
+      "brand_url": "https://polar.sh/",
+      "svgl_id": 538,
+      "sha256": "e9d02ec174dc2c3f9d655aaa2b1113e63d6e0620fbac1565c784d376ac27f7f6",
+      "view_box": "0 0 300 300"
+    },
+    {
+      "variant": "LemonSqueezy",
+      "title": "Lemon Squeezy",
+      "filename": "lemon_squeezy.svg",
+      "source_url": "https://svgl.app/library/lemonsqueezy.svg",
+      "brand_url": "https://www.lemonsqueezy.com",
+      "svgl_id": 441,
+      "sha256": "93f437b860545ece5b4fa3ce4b8dce09900abeeee23db174b70e31fcbe79e5cb",
+      "view_box": "0 0 21 28"
+    },
+    {
+      "variant": "DodoPayments",
+      "title": "Dodo Payments",
+      "filename": "dodo_payments.svg",
+      "source_url": "https://svgl.app/library/dodo-payments.svg",
+      "brand_url": "https://dodopayments.com/brand",
+      "svgl_id": 626,
+      "sha256": "5a187ae515eb889da0289111b7e64b1153b5fe6a11c6f5d91492cf74bdb63823",
+      "view_box": "0 0 121 121"
+    },
+    {
+      "variant": "OpenAi",
+      "title": "OpenAI",
+      "filename": "open_ai.svg",
+      "source_url": "https://svgl.app/library/openai_dark.svg",
+      "brand_url": "https://openai.com/brand/",
+      "svgl_id": 273,
+      "sha256": "4dac62f014aac76e15be7d681776cda434ce540beaa22410e9f7a87806a91f5a",
+      "view_box": "0 0 611 611"
+    },
+    {
+      "variant": "Anthropic",
+      "title": "Anthropic",
+      "filename": "anthropic.svg",
+      "source_url": "https://svgl.app/library/anthropic_white.svg",
+      "brand_url": "https://www.anthropic.com/",
+      "svgl_id": 573,
+      "sha256": "7fea3100bfc2a9480e181fc615d4791cab014f54674b83953785abb86dc293f0",
+      "view_box": "0 0 24 24"
+    },
+    {
+      "variant": "Gemini",
+      "title": "Gemini",
+      "filename": "gemini.svg",
+      "source_url": "https://svgl.app/library/gemini.svg",
+      "brand_url": "https://gemini.google.com/",
+      "svgl_id": 568,
+      "sha256": "c11d94a9e3ecb32f67dd9350848cf3124d617680533275c672e1e6bf61ce8cd4",
+      "view_box": "0 0 296 298"
+    },
+    {
+      "variant": "Groq",
+      "title": "Groq",
+      "filename": "groq.svg",
+      "source_url": "https://svgl.app/library/groq.svg",
+      "brand_url": "https://groq.com/",
+      "svgl_id": 33,
+      "sha256": "f8b4420340ff8875a1f04ce80909325dd81b0cb78d0c7a15fd567977338ae956",
+      "view_box": "0 0 201 201"
+    },
+    {
+      "variant": "Mistral",
+      "title": "Mistral AI",
+      "filename": "mistral.svg",
+      "source_url": "https://svgl.app/library/mistral-ai_logo.svg",
+      "brand_url": "https://mistral.ai/",
+      "svgl_id": 447,
+      "sha256": "792480de7c64c395ad438cfe0dd668cf7577961a8e653512ea6a45591a2f488e",
+      "view_box": "0 0 256 233"
+    },
+    {
+      "variant": "Cohere",
+      "title": "Cohere",
+      "filename": "cohere.svg",
+      "source_url": "https://svgl.app/library/cohere.svg",
+      "brand_url": "https://cohere.com/",
+      "svgl_id": 34,
+      "sha256": "c7fba29253b3b598d149f764d2629344bd60e13abfbd770a4214331950936d67",
+      "view_box": "0 0 75 75"
+    },
+    {
+      "variant": "Replicate",
+      "title": "Replicate",
+      "filename": "replicate.svg",
+      "source_url": "https://svgl.app/library/replicate_dark.svg",
+      "brand_url": "https://replicate.com/",
+      "svgl_id": 429,
+      "sha256": "3a1a39f81c20c507bb84b105d022f5c3af35c1f561005493b1c654bcf356f3a5",
+      "view_box": "0 0 726 726"
+    },
+    {
+      "variant": "HuggingFace",
+      "title": "Hugging Face",
+      "filename": "hugging_face.svg",
+      "source_url": "https://svgl.app/library/hugging_face.svg",
+      "brand_url": "https://huggingface.co/brand",
+      "svgl_id": 448,
+      "sha256": "b5d3cd5fd73e72a38784cc834f153aa1c985b4071f32154ba506862fce18a0ee",
+      "view_box": "0 0 95 88"
+    },
+    {
+      "variant": "OpenRouter",
+      "title": "OpenRouter",
+      "filename": "open_router.svg",
+      "source_url": "https://svgl.app/library/openrouter_dark.svg",
+      "brand_url": "https://openrouter.ai/",
+      "svgl_id": 595,
+      "sha256": "d05021526e72fddf3426eabc066924aca83da0cd66a699a3de3bac58ed2fe0a2",
+      "view_box": "0 0 512 512"
+    },
+    {
+      "variant": "DeepSeek",
+      "title": "DeepSeek",
+      "filename": "deep_seek.svg",
+      "source_url": "https://svgl.app/library/deepseek.svg",
+      "brand_url": "https://deepseek.com/",
+      "svgl_id": 557,
+      "sha256": "360336e87a3336f60b7d2432ecdea2982537806886e20b170163fd5d3dda825b",
+      "view_box": "0 0 24 24"
+    },
+    {
+      "variant": "Xai",
+      "title": "xAI",
+      "filename": "xai.svg",
+      "source_url": "https://svgl.app/library/xai_dark.svg",
+      "brand_url": "https://grok.com/",
+      "svgl_id": 569,
+      "sha256": "aa41806e679c972053a12fd33d0165daef4ce60be572976cce0e9026bcd47158",
+      "view_box": "0 0 841.89 595.28"
+    },
+    {
+      "variant": "Perplexity",
+      "title": "Perplexity AI",
+      "filename": "perplexity.svg",
+      "source_url": "https://svgl.app/library/perplexity.svg",
+      "brand_url": "https://perplexity.ai/",
+      "svgl_id": 396,
+      "sha256": "9875991687969836173880f39bda63ebfb11a2d688f31372e4b91e839573bbbd",
+      "view_box": "0 0 48 48"
+    },
+    {
+      "variant": "Sentry",
+      "title": "Sentry",
+      "filename": "sentry.svg",
+      "source_url": "https://svgl.app/library/sentry.svg",
+      "brand_url": "https://sentry.io/branding/",
+      "svgl_id": 421,
+      "sha256": "1469719716614dcb8f95c3bba9d158b97724a3236e38630ffc9e85aebc7123d9",
+      "view_box": "0 0 256 227"
+    },
+    {
+      "variant": "PostHog",
+      "title": "PostHog",
+      "filename": "post_hog.svg",
+      "source_url": "https://svgl.app/library/posthog.svg",
+      "brand_url": "https://posthog.com/handbook/company/brand-assets",
+      "svgl_id": 547,
+      "sha256": "3fec8f0274ad4956866b74ba6d9fc8204d9d379192f967f738a55477caac89dd",
+      "view_box": "0 0 50 30"
+    },
+    {
+      "variant": "Axiom",
+      "title": "Axiom",
+      "filename": "axiom.svg",
+      "source_url": "https://svgl.app/library/axiom-dark.svg",
+      "brand_url": "https://axiom.co/",
+      "svgl_id": 350,
+      "sha256": "4b4eb272562ad0043242e74ed6a5eb5344ae2f785c96bed20f3a1917b2e40e5c",
+      "view_box": "0 0 358 309"
+    },
+    {
+      "variant": "Datadog",
+      "title": "Datadog",
+      "filename": "datadog.svg",
+      "source_url": "https://svgl.app/library/datadog.svg",
+      "brand_url": "https://www.datadoghq.com/",
+      "svgl_id": 312,
+      "sha256": "d7c954e9f3316e1fea4353e71e266ca50f81628f358a8ccd484bdf512fcdd691",
+      "view_box": "0 0 256 274"
+    },
+    {
+      "variant": "Grafana",
+      "title": "Grafana",
+      "filename": "grafana.svg",
+      "source_url": "https://svgl.app/library/grafana.svg",
+      "brand_url": "https://grafana.com/",
+      "svgl_id": 422,
+      "sha256": "0b7f85edd76a69eee78c7781a037d982c6168cb2c2238d13683c7f7ddfd07b0f",
+      "view_box": "0 0 256 279"
+    },
+    {
+      "variant": "Plausible",
+      "title": "Plausible Analytics",
+      "filename": "plausible.svg",
+      "source_url": "https://svgl.app/library/plausible.svg",
+      "brand_url": "https://plausible.io/trademark",
+      "svgl_id": 8,
+      "sha256": "ee2a3d9810f4f736dcea00d3b7d0055a2fb2653ad8467771ca8a2af82eaeb361",
+      "view_box": "0 0 46 60"
+    },
+    {
+      "variant": "GoogleAnalytics",
+      "title": "Google Analytics",
+      "filename": "google_analytics.svg",
+      "source_url": "https://svgl.app/library/google-analytics.svg",
+      "brand_url": "https://analytics.google.com/",
+      "svgl_id": 644,
+      "sha256": "f177b0bc72efdd9485494c74392f1aaf39c9dddc067b1d3621e4372ce28637a6",
+      "view_box": "0 0 2195.9 2430.9"
+    },
+    {
+      "variant": "Cloudinary",
+      "title": "Cloudinary",
+      "filename": "cloudinary.svg",
+      "source_url": "https://svgl.app/library/cloudinary.svg",
+      "brand_url": "https://cloudinary.com/",
+      "svgl_id": 234,
+      "sha256": "7f2045602c564ca1f8016bb629d57cb2af05485948664fab3449794a6c1cedd6",
+      "view_box": "0 0 256 168"
+    },
+    {
+      "variant": "Cloudflare",
+      "title": "Cloudflare",
+      "filename": "cloudflare.svg",
+      "source_url": "https://svgl.app/library/cloudflare.svg",
+      "brand_url": "https://www.cloudflare.com/",
+      "svgl_id": 232,
+      "sha256": "b8dff311e8041942b6006c907fd44c5f3ae941bd88ec650e552fe3f727f5139c",
+      "view_box": "0 0 256 116"
+    },
+    {
+      "variant": "Aws",
+      "title": "Amazon Web Services",
+      "filename": "aws.svg",
+      "source_url": "https://svgl.app/library/aws_dark.svg",
+      "brand_url": "https://aws.amazon.com/",
+      "svgl_id": 145,
+      "sha256": "413381b8958578c3e32e5c3fb3e851ed782bdeddec824f22e35d50328cce1bdb",
+      "view_box": "0 0 304 182"
+    },
+    {
+      "variant": "GoogleCloud",
+      "title": "Google Cloud",
+      "filename": "google_cloud.svg",
+      "source_url": "https://svgl.app/library/google-cloud.svg",
+      "brand_url": "https://cloud.google.com/",
+      "svgl_id": 598,
+      "sha256": "e314a1d65f5035bdcebb84ed740ed0341cc5ba15ecf22fa2c1b10d39fbe18880",
+      "view_box": "0 -25 256 256"
+    },
+    {
+      "variant": "Azure",
+      "title": "Microsoft Azure",
+      "filename": "azure.svg",
+      "source_url": "https://svgl.app/library/azure.svg",
+      "brand_url": "https://azure.microsoft.com/",
+      "svgl_id": 146,
+      "sha256": "942a851dff182edca939226bbac4d2de98c36806db466ef008699cfce22478c1",
+      "view_box": "0 0 96 96"
+    },
+    {
+      "variant": "DigitalOcean",
+      "title": "Digital Ocean",
+      "filename": "digital_ocean.svg",
+      "source_url": "https://svgl.app/library/digitalocean.svg",
+      "brand_url": "https://www.digitalocean.com/",
+      "svgl_id": 204,
+      "sha256": "7cd3313483ad97ede51f547018d50a8bb3e0ea117fbf1d1c68c5dfabfe614d00",
+      "view_box": "0 -3.954 53.927 53.954"
+    },
+    {
+      "variant": "Railway",
+      "title": "Railway",
+      "filename": "railway.svg",
+      "source_url": "https://svgl.app/library/railway_dark.svg",
+      "brand_url": "https://railway.app/",
+      "svgl_id": 130,
+      "sha256": "e9141826a7590b6bfbd159f3b31539429915840ad04b80bf3eb40cf44dc65f2f",
+      "view_box": "0 0 1024 1024"
+    },
+    {
+      "variant": "Render",
+      "title": "Render",
+      "filename": "render.svg",
+      "source_url": "https://svgl.app/library/render_white.svg",
+      "brand_url": "https://render.com/",
+      "svgl_id": 654,
+      "sha256": "f05692b3d37cd62acadcfacb2811095d64b4d581df1ed6c8756f87b122595daa",
+      "view_box": "0 0 800 800"
+    },
+    {
+      "variant": "Fly",
+      "title": "Fly",
+      "filename": "fly.svg",
+      "source_url": "https://svgl.app/library/fly.svg",
+      "brand_url": "https://fly.io/docs/about/brand/",
+      "svgl_id": 110,
+      "sha256": "16fa96c3d880ee79817e596a6fe5f234ef29b5f1e086fa78d1296ccc2f58ef0c",
+      "view_box": "0 0 256 231"
+    },
+    {
+      "variant": "Netlify",
+      "title": "Netlify",
+      "filename": "netlify.svg",
+      "source_url": "https://svgl.app/library/netlify.svg",
+      "brand_url": "https://www.netlify.com/",
+      "svgl_id": 105,
+      "sha256": "49c48ca9efc5f9419acc5c8546e99a81cc33dff8eb9eb55c7122d21f820376ac",
+      "view_box": "0 0 256 226"
+    },
+    {
+      "variant": "GitHub",
+      "title": "GitHub",
+      "filename": "git_hub.svg",
+      "source_url": "https://svgl.app/library/github_dark.svg",
+      "brand_url": "https://brand.github.com/",
+      "svgl_id": 582,
+      "sha256": "83adf1cacb564250654ccf60caadd8aaf852d9de47936befb7cb61b674ace7e8",
+      "view_box": "0 0 1024 1024"
+    },
+    {
+      "variant": "GitLab",
+      "title": "GitLab",
+      "filename": "git_lab.svg",
+      "source_url": "https://svgl.app/library/gitlab.svg",
+      "brand_url": "https://gitlab.com/",
+      "svgl_id": 137,
+      "sha256": "f113a0879aae4d458ac1de8f6ff3c8c6f9793299069fa1e422350ca24128a1fa",
+      "view_box": "0 0 32 32"
+    },
+    {
+      "variant": "Google",
+      "title": "Google",
+      "filename": "google.svg",
+      "source_url": "https://svgl.app/library/google.svg",
+      "brand_url": "https://www.google.com/",
+      "svgl_id": 93,
+      "sha256": "a60266dab17c1c00981c7077fa025aa84c92782e0657ca2f78b7f70cbb8d5a56",
+      "view_box": "0 0 268.152 273.883"
+    },
+    {
+      "variant": "Discord",
+      "title": "Discord",
+      "filename": "discord.svg",
+      "source_url": "https://svgl.app/library/discord.svg",
+      "brand_url": "https://discord.com/branding",
+      "svgl_id": 45,
+      "sha256": "6634cc2f915db66df7a5237cac0c1b98016289e86a2bb4b7bf6408ec2b95265c",
+      "view_box": "0 0 256 199"
+    },
+    {
+      "variant": "Slack",
+      "title": "Slack",
+      "filename": "slack.svg",
+      "source_url": "https://svgl.app/library/slack.svg",
+      "brand_url": "https://www.slack.com",
+      "svgl_id": 381,
+      "sha256": "29734796b3a85f9d0e03150d53142fab0b7f994ae80c7e3e1efd0bef52c12f5d",
+      "view_box": "0 0 2447.6 2452.5"
+    },
+    {
+      "variant": "Twilio",
+      "title": "Twilio",
+      "filename": "twilio.svg",
+      "source_url": "https://svgl.app/library/twilio.svg",
+      "brand_url": "https://twilio.com",
+      "svgl_id": 122,
+      "sha256": "16de11fe08c106fc52a984b8204ea2e5a51f50b2193d4411212c57e35e9bd4be",
+      "view_box": "0 0 64 64"
+    },
+    {
+      "variant": "Telegram",
+      "title": "Telegram",
+      "filename": "telegram.svg",
+      "source_url": "https://svgl.app/library/telegram.svg",
+      "brand_url": "https://web.telegram.org/",
+      "svgl_id": 99,
+      "sha256": "05f6898c0c087f84c8bcf65e93721bde65abe34093045d4e9ecddbb8dc9f6a18",
+      "view_box": "0 0 256 256"
+    },
+    {
+      "variant": "Notion",
+      "title": "Notion",
+      "filename": "notion.svg",
+      "source_url": "https://svgl.app/library/notion.svg",
+      "brand_url": "https://notion.so/",
+      "svgl_id": 423,
+      "sha256": "0d94471649fb9badd434394846079c279876fdd224cf49ed46b6c09fbd3a041f",
+      "view_box": "0 0 256 268"
+    },
+    {
+      "variant": "Linear",
+      "title": "Linear",
+      "filename": "linear.svg",
+      "source_url": "https://svgl.app/library/linear.svg",
+      "brand_url": "https://linear.app/",
+      "svgl_id": 262,
+      "sha256": "e669549bf9917d616f3ae10ace5ba9af6e84966ec12cadd13459489cded34ccf",
+      "view_box": "0 0 100 100"
+    },
+    {
+      "variant": "Figma",
+      "title": "Figma",
+      "filename": "figma.svg",
+      "source_url": "https://svgl.app/library/figma.svg",
+      "brand_url": "https://www.figma.com/using-the-figma-brand/",
+      "svgl_id": 65,
+      "sha256": "5bcdea3417293412845b8298fe357fce3b192e8ff112d9b3fef315bc5cd127f6",
+      "view_box": "0 0 54 80"
+    },
+    {
+      "variant": "Shopify",
+      "title": "Shopify",
+      "filename": "shopify.svg",
+      "source_url": "https://svgl.app/library/shopify.svg",
+      "brand_url": "https://www.shopify.com/brand-assets",
+      "svgl_id": 374,
+      "sha256": "86e19afda708cead229b714d25de147ef0b920cfea807c5b2933b30d17a234db",
+      "view_box": "0 0 256 292"
+    },
+    {
+      "variant": "Typesense",
+      "title": "Typesense",
+      "filename": "typesense.svg",
+      "source_url": "https://svgl.app/library/typesense.svg",
+      "brand_url": "https://typesense.org/",
+      "svgl_id": 286,
+      "sha256": "137699c85a480538a46045c3417b37c84b64c7440d3fb34d061795a868999c6f",
+      "view_box": "0 0 256 255"
+    },
+    {
+      "variant": "Sanity",
+      "title": "Sanity",
+      "filename": "sanity.svg",
+      "source_url": "https://svgl.app/library/sanity-dark.svg",
+      "brand_url": "https://www.sanity.io/",
+      "svgl_id": 621,
+      "sha256": "8aca6d850923160b5a691f09176e82bba11bdcebddda744b3082b80cd8ab87db",
+      "view_box": "0 0 192 192"
+    },
+    {
+      "variant": "Strapi",
+      "title": "Strapi",
+      "filename": "strapi.svg",
+      "source_url": "https://svgl.app/library/strapi.svg",
+      "brand_url": "https://handbook.strapi.io/strapi-brand-book-2022",
+      "svgl_id": 64,
+      "sha256": "f3635f9be4f4e600f4f1de3c5d23399aee6b2f2bf3a952d22676ccd28c779e87",
+      "view_box": "0 0 256 256"
+    },
+    {
+      "variant": "Payload",
+      "title": "Payload CMS",
+      "filename": "payload.svg",
+      "source_url": "https://svgl.app/library/payload_dark.svg",
+      "brand_url": "https://payloadcms.com",
+      "svgl_id": 109,
+      "sha256": "eda1c2d87051007a677d7bcfaea508181ca36b59a2db8f5868ad9f3b686c4e77",
+      "view_box": "0 0 256 256"
+    },
+    {
+      "variant": "Qdrant",
+      "title": "Qdrant",
+      "filename": "qdrant.svg",
+      "source_url": "https://svgl.app/library/qdrant-icon-dark.svg",
+      "brand_url": "https://qdrant.tech/brand-resources/",
+      "svgl_id": 619,
+      "sha256": "1a061aa0ed894c8580b83e62934ae77d7d852d5020ba0d190b1c4daf7d713fad",
+      "view_box": "0 0 57 64"
+    },
+    {
+      "variant": "Nhost",
+      "title": "NHost",
+      "filename": "nhost.svg",
+      "source_url": "https://svgl.app/library/nhost.svg",
+      "brand_url": "https://nhost.io/",
+      "svgl_id": 243,
+      "sha256": "4175dfc0d972bdec1d4320ca719ef68234721ab3e83702f73e2cd91c6ae51605",
+      "view_box": "0 0 256 273"
+    },
+    {
+      "variant": "PocketBase",
+      "title": "Pocketbase",
+      "filename": "pocket_base.svg",
+      "source_url": "https://svgl.app/library/pocket-base.svg",
+      "brand_url": "https://pocketbase.io/",
+      "svgl_id": 202,
+      "sha256": "9f96301c9d3569325abc4560a36c9ceadbbe34960acb1f43d9b7a1869e7a7d46",
+      "view_box": "0 0 256 256"
+    },
+    {
+      "variant": "CockroachDb",
+      "title": "Cockroach Labs",
+      "filename": "cockroach_db.svg",
+      "source_url": "https://svgl.app/library/cockroachlabs-dark.svg",
+      "brand_url": "https://www.cockroachlabs.com/",
+      "svgl_id": 677,
+      "sha256": "e7b7fca458e886328f4c634e04298ee98702b08a088719e962e773b390df86f9",
+      "view_box": "0 0 161.31 166.68"
+    },
+    {
+      "variant": "Xata",
+      "title": "Xata",
+      "filename": "xata.svg",
+      "source_url": "https://svgl.app/library/xata.svg",
+      "brand_url": "https://xata.io/brand",
+      "svgl_id": 655,
+      "sha256": "85ca51598b4267e5f9e979787ccc5e182b8328d63d2ec1e2c39f548e5b8f7356",
+      "view_box": "0 0 134 135"
+    },
+    {
+      "variant": "Firecrawl",
+      "title": "Firecrawl",
+      "filename": "firecrawl.svg",
+      "source_url": "https://svgl.app/library/firecrawl-dark.svg",
+      "brand_url": "https://www.firecrawl.dev/brand",
+      "svgl_id": 637,
+      "sha256": "925752e210b3a9d943d35a95b1cd08bd8e94f016f97c6d43f7c5fc20a20275d5",
+      "view_box": "0 0 50 72"
+    },
+    {
+      "variant": "Dub",
+      "title": "Dub",
+      "filename": "dub.svg",
+      "source_url": "https://svgl.app/library/dub_dark_logo.svg",
+      "brand_url": "https://dub.co/brand",
+      "svgl_id": 461,
+      "sha256": "a912f1665ff127b1124de873d058bd08996ca592d3814e612d1c667b21073116",
+      "view_box": "0 0 64 64"
+    },
+    {
+      "variant": "Expo",
+      "title": "Expo",
+      "filename": "expo.svg",
+      "source_url": "https://svgl.app/library/expo.svg",
+      "brand_url": "https://expo.dev/",
+      "svgl_id": 168,
+      "sha256": "d304768a7a3c8de8638ead0c6bca24758cb39ee3065e42a6a7326024aa507555",
+      "view_box": "0 0 256 231"
+    },
+    {
+      "variant": "Hcaptcha",
+      "title": "hCaptcha",
+      "filename": "hcaptcha.svg",
+      "source_url": "https://svgl.app/library/hcaptcha.svg",
+      "brand_url": "https://www.hcaptcha.com/",
+      "svgl_id": 236,
+      "sha256": "cc4d45695601cdc6897e30bb4dff139a8fd8e035e0ebce8d5d7653e413370e28",
+      "view_box": "0 0 256 256"
+    }
+  ]
+}

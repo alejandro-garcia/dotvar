@@ -1,0 +1,8 @@
+# Quoted values are literal source tokens.
+DOUBLE="a # inside = token, escaped \"quote\" and \\ slash"
+SINGLE='literal # ${NAME} backslash\'
+MULTI="first
+
+LOOKS_LIKE_ASSIGNMENT=still part of the token
+last" # retained
+AFTER=independent

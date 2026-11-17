@@ -1,0 +1,645 @@
+{
+  "source": "https://svgl.app/",
+  "reviewed_on": "2026-11-17",
+  "canvas_px": [
+    16,
+    16
+  ],
+  "visible_max_extent_px": 14.5,
+  "rendering": "White alpha masks with transparent counterforms and tonal alpha where the source uses overlapping color layers.",
+  "assets": [
+    {
+      "service": "PlanetScale",
+      "file": "planet_scale.svg",
+      "source_url": "https://svgl.app/library/planetscale_dark.svg",
+      "source_sha256": "cba6b59b8cd79e9b4d9e29a3649371b69c15a7caac539072235e4e71afdf35c2",
+      "monochrome_sha256": "8dbdde7a6ce7864b8e3b97bd8a41e3a13cf2340e8b360c3f0983503e80c453ad",
+      "viewBox": "-14.222222 -14.222222 284.444444 284.444444"
+    },
+    {
+      "service": "Better Auth",
+      "file": "better_auth.svg",
+      "source_url": "https://svgl.app/library/better-auth_dark.svg",
+      "source_sha256": "e18ef264abb7a7dc93381fb4843c9cc0dbf64703ab2741b7235b8016b40b5285",
+      "monochrome_sha256": "ccd2a813d22d171b3beb7a1f9d59749bc97957eb1bd562473eb47d25051ac669",
+      "viewBox": "49.916936 50.105128 400.166128 400.166128"
+    },
+    {
+      "service": "Resend",
+      "file": "resend.svg",
+      "source_url": "https://svgl.app/library/resend-icon-white.svg",
+      "source_sha256": "9d6a386b319b8d0f421918e270f843d9996e31021fad9e41bc4c10a8882b9908",
+      "monochrome_sha256": "c7b0e1d6b9a0cfedb50acd33f7d41fb58c191bb9fd5362a876a9a8fe0f1eae76",
+      "viewBox": "398.046875 400.000000 1000.000000 1000.000000"
+    },
+    {
+      "service": "Vercel",
+      "file": "vercel.svg",
+      "source_url": "https://svgl.app/library/vercel_dark.svg",
+      "source_sha256": "a9ae5ad4ea10c39122cc6b07927132f9c684dd2f1a7bef5337b0eb7364e139ae",
+      "monochrome_sha256": "76bde47fd8452219cac43a3f9789faaa3dc8073e4e357bc9f3c42104a612ba2b",
+      "viewBox": "-12.996168 -29.996168 281.992337 281.992337"
+    },
+    {
+      "service": "Upstash",
+      "file": "upstash.svg",
+      "source_url": "https://svgl.app/library/upstash.svg",
+      "source_sha256": "b100d0e1ca0cb721cd5375272321d94ba2a5d2c262d36d8f785ef2d58234758c",
+      "monochrome_sha256": "463fb7bd4abf5d416133478b96612c8a6a030eb4064575d8cf5df7edd6f3fc65",
+      "viewBox": "-60.627873 -18.867890 377.255747 377.255747"
+    },
+    {
+      "service": "Supabase",
+      "file": "supabase.svg",
+      "source_url": "https://svgl.app/library/supabase.svg",
+      "source_sha256": "1f9387ffd2d8bea4b535f13f12c34b4b4c2df7ee0e5eefe1f532bbda0a3ce969",
+      "monochrome_sha256": "80a30891ce7454a9bab0945f616399ceb35afd971d2051cc288dc841a7824fd4",
+      "viewBox": "-7.297414 -5.527883 123.594828 123.594828"
+    },
+    {
+      "service": "Neon",
+      "file": "neon.svg",
+      "source_url": "https://svgl.app/library/neon.svg",
+      "source_sha256": "3af6fa33e85ad9dff82abf21f3a0eb1ffe01d5e2d221c250857e74078aef34c2",
+      "monochrome_sha256": "eb873749136fd2fdfe28991786276775d5c19466c1b9fcece25a20b652d4512d",
+      "viewBox": "-3.764009 -3.527355 70.528017 70.528017"
+    },
+    {
+      "service": "Turso",
+      "file": "turso.svg",
+      "source_url": "https://svgl.app/library/turso-dark.svg",
+      "source_sha256": "df2a5795079800728bd9a3823724de73c5d04aeb53900ebe2493a5c666c142d4",
+      "monochrome_sha256": "d97e3dd5bd97c8c512f4f688996a2d2f24d55ce91c3ce812c3f450f5308d3593",
+      "viewBox": "-10.547481 -25.631466 221.262931 221.262931"
+    },
+    {
+      "service": "MongoDB",
+      "file": "mongo_db.svg",
+      "source_url": "https://svgl.app/library/mongodb-icon-dark.svg",
+      "source_sha256": "43c4f5a1261601683e1403e9f4a5497b6fe0ee17448b5b12dfb289e7b637b770",
+      "monochrome_sha256": "c149583e7b603669ae723df8b0f78f648c01fea25c4f48f6eb97a5e382aab5fa",
+      "viewBox": "-81.724138 -13.224138 283.448276 283.448276"
+    },
+    {
+      "service": "PostgreSQL",
+      "file": "postgre_sql.svg",
+      "source_url": "https://svgl.app/library/postgresql.svg",
+      "source_sha256": "dc6bb4376a5cf235b19a8871f3219c2b98d97e4469309c8bbecb86ff1811f506",
+      "monochrome_sha256": "de7819fb094d9d637d4724f4b511bdd8cf36b4ee5ee778cd0a576d32aa776168",
+      "viewBox": "-24.064655 -16.646686 480.129310 480.129310"
+    },
+    {
+      "service": "MySQL",
+      "file": "my_sql.svg",
+      "source_url": "https://svgl.app/library/mysql-icon-dark.svg",
+      "source_sha256": "d666d07efc294db49dc2c794d689dbae17878b7049aaa49f9c0339a81f525ab9",
+      "monochrome_sha256": "9ad4b2d6688a0bdbf62deab91bc0ea7f2ec600eeeaf01bae1e0f975620b3f567",
+      "viewBox": "-16.663512 -19.161117 289.322235 289.322235"
+    },
+    {
+      "service": "Redis",
+      "file": "redis.svg",
+      "source_url": "https://svgl.app/library/redis.svg",
+      "source_sha256": "0588a304be52b7a96f531268ea68624d504d4c93175e41d2feba7bce9ae22fbb",
+      "monochrome_sha256": "0c171f1056e92b6c1bcf0d75d9098b764349e43101ac838f5c6c25375a0ad1ad",
+      "viewBox": "-13.982759 -31.982759 283.965517 283.965517"
+    },
+    {
+      "service": "Convex",
+      "file": "convex.svg",
+      "source_url": "https://svgl.app/library/convex.svg",
+      "source_sha256": "4dafe466c51191efc7c1da64f7a8f46157d7aa5631f5d96e84a9e39abc3d1f17",
+      "monochrome_sha256": "7e392670a70c2c6fe3e35747307a18b78c335e1de9b6d834d1325bb3da006d53",
+      "viewBox": "22.706717 24.706717 138.586566 138.586566"
+    },
+    {
+      "service": "Firebase",
+      "file": "firebase.svg",
+      "source_url": "https://svgl.app/library/firebase.svg",
+      "source_sha256": "d7237deed92953b176ebf4d2010b121efecaa381fc3469cd879d2f99d8b18d8b",
+      "monochrome_sha256": "89c1a1da53bacf55f7557018567b5cf6add0b9093b341eddc69f0c64a16bacd9",
+      "viewBox": "-10.779230 -7.230035 614.527209 614.527209"
+    },
+    {
+      "service": "Appwrite",
+      "file": "appwrite.svg",
+      "source_url": "https://svgl.app/library/appwrite.svg",
+      "source_sha256": "fff96e40f8a078b63f92eaaf30ec1e145d97c282015057c66eed048c204cd2d0",
+      "monochrome_sha256": "012db6d5e5143c1e2308d5ab303e0d565a01789e7898d4dec776c1361487dee1",
+      "viewBox": "14.900000 15.220312 60.000000 60.000000"
+    },
+    {
+      "service": "Clerk",
+      "file": "clerk.svg",
+      "source_url": "https://svgl.app/library/clerk-icon-dark.svg",
+      "source_sha256": "d62d8a4fe8e22c34235c0934a73ec48321bba42d4d26df39de887eb489d87f36",
+      "monochrome_sha256": "230af0fbfbffe8bb2c8ffbbc0b5e2c4aabf41ac56fde2b6ab8c3d8a7feebce31",
+      "viewBox": "-20.638889 -7.111111 142.222222 142.222222"
+    },
+    {
+      "service": "Auth0",
+      "file": "auth0.svg",
+      "source_url": "https://svgl.app/library/auth0.svg",
+      "source_sha256": "b7cc3f0d713d27679388cbc815f751eb7154ef15fcb0d0d7be7d38427a7e7359",
+      "monochrome_sha256": "4b86fa5bb2dbf54949f97e4f63932ac93f4b323f05d107dd44e769d5d5dc4a54",
+      "viewBox": "-1.275862 -1.327945 26.551724 26.551724"
+    },
+    {
+      "service": "Auth.js",
+      "file": "auth_js.svg",
+      "source_url": "https://svgl.app/library/authjs.svg",
+      "source_sha256": "25e796039625e22cf4bd938fc715b805fca19a2f71a27411ddffd667a0fc7610",
+      "monochrome_sha256": "55aeb8fe7c1b36bf0e517bb4926efe8961613808284f55cdf504cde676de1c7f",
+      "viewBox": "-23.184671 -12.184671 255.439655 255.439655"
+    },
+    {
+      "service": "WorkOS",
+      "file": "work_os.svg",
+      "source_url": "https://svgl.app/library/workos-light.svg",
+      "source_sha256": "b1744548e1975e820bb75a4bbb4150fae5433297607d16cee5860a8e1543e387",
+      "monochrome_sha256": "a17f497e6abf2759a91033d3926e050c909ea9752fa7337a13ee342743dcb67b",
+      "viewBox": "-3.077778 -6.777778 61.555556 61.555556"
+    },
+    {
+      "service": "Keycloak",
+      "file": "keycloak.svg",
+      "source_url": "https://svgl.app/library/keycloak.svg",
+      "source_sha256": "8da437b63f6f0c3cc490eafeabeaab676652d3a3e251bc05a88ba768eade92f5",
+      "monochrome_sha256": "016f9a3f01d96c311017019bfe16f70b15b2ddbfc9b91e60c38abb1f4ba3fa53",
+      "viewBox": "-9.041824 -17.350418 185.392241 185.392241"
+    },
+    {
+      "service": "Stripe",
+      "file": "stripe.svg",
+      "source_url": "https://svgl.app/library/stripe.svg",
+      "source_sha256": "d1dd829f330c3c17a02c7356e2e41f77f6ecad3f72a9b2bf11b649703c66e30a",
+      "monochrome_sha256": "c6b37a9460c61a9ea047196df35343aee0aaa757092982b9373641a3eddfe7dd",
+      "viewBox": "-26.334725 37.887931 143.224138 143.224138",
+      "geometry_source_url": "https://svgl.app/library/stripe_wordmark.svg"
+    },
+    {
+      "service": "PayPal",
+      "file": "pay_pal.svg",
+      "source_url": "https://svgl.app/library/paypal.svg",
+      "source_sha256": "be46ba3ede93ac6d513f00947d6aba825e450497b1a47a8bd408e90d6ee829c7",
+      "monochrome_sha256": "749cf944daae10e89261f02d9b77e2599bb60089ccb3401c63f9aa2351a53db8",
+      "viewBox": "0.859914 0.672414 49.655172 49.655172"
+    },
+    {
+      "service": "Mercado Pago",
+      "file": "mercado_pago.svg",
+      "source_url": "https://svgl.app/library/mercado-pago.svg",
+      "source_sha256": "4299ec11af9344b4fb538af06e1a5f3a66bb3d7d037a8ff9862e6cd64d405a09",
+      "monochrome_sha256": "4b2b94467ea82565070bda271c436e6bdaed1e88dcef76b29ff14428cfb29712",
+      "viewBox": "-7.614942 -30.614942 165.229885 165.229885"
+    },
+    {
+      "service": "Polar",
+      "file": "polar.svg",
+      "source_url": "https://svgl.app/library/polar-sh_dark.svg",
+      "source_sha256": "e9d02ec174dc2c3f9d655aaa2b1113e63d6e0620fbac1565c784d376ac27f7f6",
+      "monochrome_sha256": "d715b42fd98fa4cec7122e7fa5e5b5f6c42160d28d780c8f2e1dea084ca5936c",
+      "viewBox": "-15.229885 -15.229885 330.459770 330.459770"
+    },
+    {
+      "service": "Lemon Squeezy",
+      "file": "lemon_squeezy.svg",
+      "source_url": "https://svgl.app/library/lemonsqueezy.svg",
+      "source_sha256": "93f437b860545ece5b4fa3ce4b8dce09900abeeee23db174b70e31fcbe79e5cb",
+      "monochrome_sha256": "40915a0ba35cdeb615051033b46285b09eb57f88150223fcdd67e7bc0b2d0d46",
+      "viewBox": "-5.335070 -1.555556 31.111111 31.111111"
+    },
+    {
+      "service": "Dodo Payments",
+      "file": "dodo_payments.svg",
+      "source_url": "https://svgl.app/library/dodo-payments.svg",
+      "source_sha256": "5a187ae515eb889da0289111b7e64b1153b5fe6a11c6f5d91492cf74bdb63823",
+      "monochrome_sha256": "71d26864f5c5ebe64bc14981574b4d4cbcefc6971f0d2466db710fff3a1d403f",
+      "viewBox": "13.691204 15.304485 99.504310 99.504310"
+    },
+    {
+      "service": "OpenAI",
+      "file": "open_ai.svg",
+      "source_url": "https://svgl.app/library/openai_dark.svg",
+      "source_sha256": "4dac62f014aac76e15be7d681776cda434ce540beaa22410e9f7a87806a91f5a",
+      "monochrome_sha256": "5861dff099fccffcda0b143f9f479abd75e959b51d96285efe33e2003388430d",
+      "viewBox": "84.659931 84.659931 441.680136 441.680136"
+    },
+    {
+      "service": "Anthropic",
+      "file": "anthropic.svg",
+      "source_url": "https://svgl.app/library/anthropic_white.svg",
+      "source_sha256": "7fea3100bfc2a9480e181fc615d4791cab014f54674b83953785abb86dc293f0",
+      "monochrome_sha256": "c8d8c145fb7b0afaf15785d4517fbc7dc4736e39e3098a3b1dd125e4fa7bdb33",
+      "viewBox": "-1.218390 -1.504849 26.436782 26.436782"
+    },
+    {
+      "service": "Gemini",
+      "file": "gemini.svg",
+      "source_url": "https://svgl.app/library/gemini.svg",
+      "source_sha256": "c11d94a9e3ecb32f67dd9350848cf3124d617680533275c672e1e6bf61ce8cd4",
+      "monochrome_sha256": "6d7707c32c511debce7cb888a63e0ecee3ff3fd2fd91b9a66109551d28b056ba",
+      "viewBox": "-16.775054 -15.128353 328.256705 328.256705"
+    },
+    {
+      "service": "Groq",
+      "file": "groq.svg",
+      "source_url": "https://svgl.app/library/groq.svg",
+      "source_sha256": "f8b4420340ff8875a1f04ce80909325dd81b0cb78d0c7a15fd567977338ae956",
+      "monochrome_sha256": "d5376472148cb5000dae9ea6771f245cd48ba7c9c01c8a0778984cda5257bfbf",
+      "viewBox": "31.513067 32.174861 136.650279 136.650279"
+    },
+    {
+      "service": "Mistral AI",
+      "file": "mistral.svg",
+      "source_url": "https://svgl.app/library/mistral-ai_logo.svg",
+      "source_sha256": "792480de7c64c395ad438cfe0dd668cf7577961a8e653512ea6a45591a2f488e",
+      "monochrome_sha256": "56d79609e639c30dbbcb2a50985367acbb0cd9545b0eac720787b62f97c846c8",
+      "viewBox": "10.620690 -12.379310 257.758621 257.758621"
+    },
+    {
+      "service": "Cohere",
+      "file": "cohere.svg",
+      "source_url": "https://svgl.app/library/cohere.svg",
+      "source_sha256": "c7fba29253b3b598d149f764d2629344bd60e13abfbd770a4214331950936d67",
+      "monochrome_sha256": "6dcbbfade67b19664d819c937872a19e2f6c12ad9e4c78788c3a60fdc7116cb5",
+      "viewBox": "-4.166667 -4.166667 83.333333 83.333333"
+    },
+    {
+      "service": "Replicate",
+      "file": "replicate.svg",
+      "source_url": "https://svgl.app/library/replicate_dark.svg",
+      "source_sha256": "3a1a39f81c20c507bb84b105d022f5c3af35c1f561005493b1c654bcf356f3a5",
+      "monochrome_sha256": "5016573d50958182fdee15df99e45652754303aa8fb4928356f375172f14ea29",
+      "viewBox": "-36.856322 -36.856322 799.712644 799.712644"
+    },
+    {
+      "service": "Hugging Face",
+      "file": "hugging_face.svg",
+      "source_url": "https://svgl.app/library/hugging_face.svg",
+      "source_sha256": "b5d3cd5fd73e72a38784cc834f153aa1c985b4071f32154ba506862fce18a0ee",
+      "monochrome_sha256": "71907aa3df2a8587d6bd39807ec2bee22f77b3d6cbd1ea0bc09bdae872bdb1db",
+      "viewBox": "2.664440 -2.729310 88.758621 88.758621"
+    },
+    {
+      "service": "OpenRouter",
+      "file": "open_router.svg",
+      "source_url": "https://svgl.app/library/openrouter_dark.svg",
+      "source_sha256": "d05021526e72fddf3426eabc066924aca83da0cd66a699a3de3bac58ed2fe0a2",
+      "monochrome_sha256": "92a1cea068f11f5dc09fa1f5c5126b06c4c8cff192b1fd6893aff04bb99c00ad",
+      "viewBox": "-26.482759 -33.482759 564.965517 564.965517"
+    },
+    {
+      "service": "DeepSeek",
+      "file": "deep_seek.svg",
+      "source_url": "https://svgl.app/library/deepseek.svg",
+      "source_sha256": "360336e87a3336f60b7d2432ecdea2982537806886e20b170163fd5d3dda825b",
+      "monochrome_sha256": "513e1f67e912720f48dc86e0cea463f450bd500f95f10a5e6aff7665225b8e3e",
+      "viewBox": "-1.241379 -1.405442 26.482759 26.482759"
+    },
+    {
+      "service": "xAI",
+      "file": "xai.svg",
+      "source_url": "https://svgl.app/library/xai_dark.svg",
+      "source_sha256": "aa41806e679c972053a12fd33d0165daef4ce60be572976cce0e9026bcd47158",
+      "monochrome_sha256": "9b15b58c49face8facd24894c3c26bfc15538cd8cca66e1dc330a7f477bc1e57",
+      "viewBox": "156.119800 31.811019 531.657961 531.657961"
+    },
+    {
+      "service": "Perplexity AI",
+      "file": "perplexity.svg",
+      "source_url": "https://svgl.app/library/perplexity.svg",
+      "source_sha256": "9875991687969836173880f39bda63ebfb11a2d688f31372e4b91e839573bbbd",
+      "monochrome_sha256": "71a58a075d535e6dd5f5d131009384957716ec818dd9f46a05c54758da4c0c0e",
+      "viewBox": "1.342598 1.342598 45.314804 45.314804"
+    },
+    {
+      "service": "Sentry",
+      "file": "sentry.svg",
+      "source_url": "https://svgl.app/library/sentry.svg",
+      "source_sha256": "1469719716614dcb8f95c3bba9d158b97724a3236e38630ffc9e85aebc7123d9",
+      "monochrome_sha256": "6d067546c1395f8455aada15ae5fb819a94ee7ad540c7add8b7bfd8d3e6e3938",
+      "viewBox": "-13.241379 -27.491379 282.482759 282.482759"
+    },
+    {
+      "service": "PostHog",
+      "file": "post_hog.svg",
+      "source_url": "https://svgl.app/library/posthog.svg",
+      "source_sha256": "3fec8f0274ad4956866b74ba6d9fc8204d9d379192f967f738a55477caac89dd",
+      "monochrome_sha256": "95a7563406c128c3b6f290a5c9c699a7c2c17e4d8819430f5824ac276d290842",
+      "viewBox": "-2.482658 -10.773212 52.963362 52.963362"
+    },
+    {
+      "service": "Axiom",
+      "file": "axiom.svg",
+      "source_url": "https://svgl.app/library/axiom-dark.svg",
+      "source_sha256": "4b4eb272562ad0043242e74ed6a5eb5344ae2f785c96bed20f3a1917b2e40e5c",
+      "monochrome_sha256": "aef2b8a9aae000e65ef1ccd7f11913b80de3f9c115eaacecccd4413cc18cfcaa",
+      "viewBox": "-18.499158 -42.824353 394.648707 394.648707"
+    },
+    {
+      "service": "Datadog",
+      "file": "datadog.svg",
+      "source_url": "https://svgl.app/library/datadog.svg",
+      "source_sha256": "d7c954e9f3316e1fea4353e71e266ca50f81628f358a8ccd484bdf512fcdd691",
+      "monochrome_sha256": "c5d5c381914d8bcc53d87a37974a8ac256db4940b70f96827487adff48012924",
+      "viewBox": "-22.601580 -14.172413 302.344828 302.344828"
+    },
+    {
+      "service": "Grafana",
+      "file": "grafana.svg",
+      "source_url": "https://svgl.app/library/grafana.svg",
+      "source_sha256": "0b7f85edd76a69eee78c7781a037d982c6168cb2c2238d13683c7f7ddfd07b0f",
+      "monochrome_sha256": "70d186c0b6c818be37aefd0a5c43c5b023c53a83e01c29a3c4bd4042ae87c4ad",
+      "viewBox": "-25.630388 -14.402849 307.260776 307.260776"
+    },
+    {
+      "service": "Plausible Analytics",
+      "file": "plausible.svg",
+      "source_url": "https://svgl.app/library/plausible.svg",
+      "source_sha256": "ee2a3d9810f4f736dcea00d3b7d0055a2fb2653ad8467771ca8a2af82eaeb361",
+      "monochrome_sha256": "a44bbfdb93956d924a8e51f482ce46d790d2fe4b32e7c62b67d029fb03e13efc",
+      "viewBox": "-10.396442 -3.103448 66.206897 66.206897"
+    },
+    {
+      "service": "Google Analytics",
+      "file": "google_analytics.svg",
+      "source_url": "https://svgl.app/library/google-analytics.svg",
+      "source_sha256": "f177b0bc72efdd9485494c74392f1aaf39c9dddc067b1d3621e4372ce28637a6",
+      "monochrome_sha256": "72ff9efc511755df0665a564e951768d97a09b3c41b79dfd7eb5eba674529be5",
+      "viewBox": "-243.236207 -125.736207 2682.372414 2682.372414"
+    },
+    {
+      "service": "Cloudinary",
+      "file": "cloudinary.svg",
+      "source_url": "https://svgl.app/library/cloudinary.svg",
+      "source_sha256": "7f2045602c564ca1f8016bb629d57cb2af05485948664fab3449794a6c1cedd6",
+      "monochrome_sha256": "4c6c0ce5b72e9896f2b51337db006599cc485da269729a6dac6c7ed68b56347a",
+      "viewBox": "-13.241379 -57.366379 282.482759 282.482759"
+    },
+    {
+      "service": "Cloudflare",
+      "file": "cloudflare.svg",
+      "source_url": "https://svgl.app/library/cloudflare.svg",
+      "source_sha256": "b8dff311e8041942b6006c907fd44c5f3ae941bd88ec650e552fe3f727f5139c",
+      "monochrome_sha256": "485dd00cbb83ae917320b253972f8e224a4beb5f4f22d3bcd20daf5e6a7ae21f",
+      "viewBox": "-13.241379 -83.241379 282.482759 282.482759"
+    },
+    {
+      "service": "Amazon Web Services",
+      "file": "aws.svg",
+      "source_url": "https://svgl.app/library/aws_dark.svg",
+      "source_sha256": "413381b8958578c3e32e5c3fb3e851ed782bdeddec824f22e35d50328cce1bdb",
+      "monochrome_sha256": "4b6de012784abbac80ba86250c31b11408e05b7cd5e9ae23740a47677751d679",
+      "viewBox": "-13.461745 -74.907071 331.517242 331.517242"
+    },
+    {
+      "service": "Google Cloud",
+      "file": "google_cloud.svg",
+      "source_url": "https://svgl.app/library/google-cloud.svg",
+      "source_sha256": "e314a1d65f5035bdcebb84ed740ed0341cc5ba15ecf22fa2c1b10d39fbe18880",
+      "monochrome_sha256": "4dfeb619ecce15239a6ff66a6ee2669a63d7b41d86ff3782ea1401d1d6ce0252",
+      "viewBox": "-13.241379 -38.241379 282.482759 282.482759"
+    },
+    {
+      "service": "Microsoft Azure",
+      "file": "azure.svg",
+      "source_url": "https://svgl.app/library/azure.svg",
+      "source_sha256": "942a851dff182edca939226bbac4d2de98c36806db466ef008699cfce22478c1",
+      "monochrome_sha256": "0fcd059955abfca64c21d17ccb5ec6eb3e376b11be79cada76d7c8cbd3ce8393",
+      "viewBox": "-0.620690 -0.620690 97.241379 97.241379"
+    },
+    {
+      "service": "Digital Ocean",
+      "file": "digital_ocean.svg",
+      "source_url": "https://svgl.app/library/digitalocean.svg",
+      "source_sha256": "7cd3313483ad97ede51f547018d50a8bb3e0ea117fbf1d1c68c5dfabfe614d00",
+      "monochrome_sha256": "b0718b707b6ba8e3d9dd64be2c8b04a4ee327c315c49c632645028d50519da46",
+      "viewBox": "-2.579378 -2.435479 55.026734 55.026734"
+    },
+    {
+      "service": "Railway",
+      "file": "railway.svg",
+      "source_url": "https://svgl.app/library/railway_dark.svg",
+      "source_sha256": "e9141826a7590b6bfbd159f3b31539429915840ad04b80bf3eb40cf44dc65f2f",
+      "monochrome_sha256": "4878d5653cbb24c15e1596a474b78cfd9e79b4eeffcad911a3926ec1932961db",
+      "viewBox": "-52.965517 -52.965517 1129.931035 1129.931035"
+    },
+    {
+      "service": "Render",
+      "file": "render.svg",
+      "source_url": "https://svgl.app/library/render_white.svg",
+      "source_sha256": "f05692b3d37cd62acadcfacb2811095d64b4d581df1ed6c8756f87b122595daa",
+      "monochrome_sha256": "239dc5da5f4b983c6bc0f5f0cca05d6c8b8de38a552226e629450eb688b7d8be",
+      "viewBox": "184.779095 173.060345 441.379311 441.379311"
+    },
+    {
+      "service": "Fly",
+      "file": "fly.svg",
+      "source_url": "https://svgl.app/library/fly.svg",
+      "source_sha256": "16fa96c3d880ee79817e596a6fe5f234ef29b5f1e086fa78d1296ccc2f58ef0c",
+      "monochrome_sha256": "9c67a01ce4f69c9aed35fd9b128ac0bb0d30537875d9573652308e672ed0655e",
+      "viewBox": "-13.982759 -26.510102 283.965517 283.965517"
+    },
+    {
+      "service": "Netlify",
+      "file": "netlify.svg",
+      "source_url": "https://svgl.app/library/netlify.svg",
+      "source_sha256": "49c48ca9efc5f9419acc5c8546e99a81cc33dff8eb9eb55c7122d21f820376ac",
+      "monochrome_sha256": "a0cc29707144fa191d4299b4a180cadafd41ac7b698ef897fad612565d06c4a1",
+      "viewBox": "-13.241379 -28.616379 282.482759 282.482759"
+    },
+    {
+      "service": "GitHub",
+      "file": "git_hub.svg",
+      "source_url": "https://svgl.app/library/github_dark.svg",
+      "source_sha256": "83adf1cacb564250654ccf60caadd8aaf852d9de47936befb7cb61b674ace7e8",
+      "monochrome_sha256": "1cbd2d341203b48aab160db276443ee50c3a19446459a3b72df09c2216d106f3",
+      "viewBox": "-52.965517 -65.465517 1129.931035 1129.931035"
+    },
+    {
+      "service": "GitLab",
+      "file": "git_lab.svg",
+      "source_url": "https://svgl.app/library/gitlab.svg",
+      "source_sha256": "f113a0879aae4d458ac1de8f6ff3c8c6f9793299069fa1e422350ca24128a1fa",
+      "monochrome_sha256": "14625b90db9ff03c4d53fb7ce1bcadf812ff0aeba627f4d730277d42896a8b45",
+      "viewBox": "-1.213793 -1.413793 34.427586 34.427586"
+    },
+    {
+      "service": "Google",
+      "file": "google.svg",
+      "source_url": "https://svgl.app/library/google.svg",
+      "source_sha256": "a60266dab17c1c00981c7077fa025aa84c92782e0657ca2f78b7f70cbb8d5a56",
+      "monochrome_sha256": "499e58fcb07c187f9112fc567bfd365ae3e8c4c0302cff784be40c939041933b",
+      "viewBox": "-18.920710 -15.484620 305.993421 305.993421"
+    },
+    {
+      "service": "Discord",
+      "file": "discord.svg",
+      "source_url": "https://svgl.app/library/discord.svg",
+      "source_sha256": "6634cc2f915db66df7a5237cac0c1b98016289e86a2bb4b7bf6408ec2b95265c",
+      "monochrome_sha256": "3f7ada98e5a7a429e6fafcb7045ba4ce02f489e5e42b59f7f86c5d3ed0b00f62",
+      "viewBox": "-13.241379 -42.116379 282.482759 282.482759"
+    },
+    {
+      "service": "Slack",
+      "file": "slack.svg",
+      "source_url": "https://svgl.app/library/slack.svg",
+      "source_sha256": "29734796b3a85f9d0e03150d53142fab0b7f994ae80c7e3e1efd0bef52c12f5d",
+      "monochrome_sha256": "10d2f1b9d27ae8cc3942ec62dfe67d6c73daeb569fa5ae4c29fcfa6d48e7d7db",
+      "viewBox": "-129.303448 -126.853448 2706.206897 2706.206897"
+    },
+    {
+      "service": "Twilio",
+      "file": "twilio.svg",
+      "source_url": "https://svgl.app/library/twilio.svg",
+      "source_sha256": "16de11fe08c106fc52a984b8204ea2e5a51f50b2193d4411212c57e35e9bd4be",
+      "monochrome_sha256": "159d9900fe517339087657d31f1222dcafaa80e5347e544cc223079f65dba999",
+      "viewBox": "-3.310344 -3.310344 70.620690 70.620690"
+    },
+    {
+      "service": "Telegram",
+      "file": "telegram.svg",
+      "source_url": "https://svgl.app/library/telegram.svg",
+      "source_sha256": "05f6898c0c087f84c8bcf65e93721bde65abe34093045d4e9ecddbb8dc9f6a18",
+      "monochrome_sha256": "5d19635b22f78409e3329f4731b690675940b99dfea4db19f092037f8770155f",
+      "viewBox": "-13.241379 -13.241379 282.482759 282.482759"
+    },
+    {
+      "service": "Notion",
+      "file": "notion.svg",
+      "source_url": "https://svgl.app/library/notion.svg",
+      "source_sha256": "0d94471649fb9badd434394846079c279876fdd224cf49ed46b6c09fbd3a041f",
+      "monochrome_sha256": "ad4797f20c9a279954a8ff0e60012997303bc9d808fe9c306aa463f0465c95a2",
+      "viewBox": "-19.573276 -13.834994 295.146551 295.146551"
+    },
+    {
+      "service": "Linear",
+      "file": "linear.svg",
+      "source_url": "https://svgl.app/library/linear.svg",
+      "source_sha256": "e669549bf9917d616f3ae10ace5ba9af6e84966ec12cadd13459489cded34ccf",
+      "monochrome_sha256": "fd4684e2839e7bfc91f9e3d5dd0b4a2fe2f87135ded03acd78cc78a4ea42bb3f",
+      "viewBox": "-5.172413 -5.172413 110.344828 110.344828"
+    },
+    {
+      "service": "Figma",
+      "file": "figma.svg",
+      "source_url": "https://svgl.app/library/figma.svg",
+      "source_sha256": "5bcdea3417293412845b8298fe357fce3b192e8ff112d9b3fef315bc5cd127f6",
+      "monochrome_sha256": "b9038e8a5e8500fef7049b4b31af342bc174bc24d3613c5ae9b13ad9f4fbf5a0",
+      "viewBox": "-17.530052 -4.061302 88.122605 88.122605"
+    },
+    {
+      "service": "Shopify",
+      "file": "shopify.svg",
+      "source_url": "https://svgl.app/library/shopify.svg",
+      "source_sha256": "86e19afda708cead229b714d25de147ef0b920cfea807c5b2933b30d17a234db",
+      "monochrome_sha256": "b96719283f7384681a94e75881e8283d5ba97da24f1511706ddf19de65adeaf2",
+      "viewBox": "-32.913793 -14.913793 321.827586 321.827586"
+    },
+    {
+      "service": "Typesense",
+      "file": "typesense.svg",
+      "source_url": "https://svgl.app/library/typesense.svg",
+      "source_sha256": "137699c85a480538a46045c3417b37c84b64c7440d3fb34d061795a868999c6f",
+      "monochrome_sha256": "7ebed3765a4befdc359029ae15f6360d49b47d885c7d80e518e997024b75fc3c",
+      "viewBox": "-13.241379 -13.991379 282.482759 282.482759"
+    },
+    {
+      "service": "Sanity",
+      "file": "sanity.svg",
+      "source_url": "https://svgl.app/library/sanity-dark.svg",
+      "source_sha256": "8aca6d850923160b5a691f09176e82bba11bdcebddda744b3082b80cd8ab87db",
+      "monochrome_sha256": "4857615f7c33cb2cda3060617a70c6ac279d67c3020dff7147f150961ab716f7",
+      "viewBox": "16.880028 16.575666 154.489942 154.489942"
+    },
+    {
+      "service": "Strapi",
+      "file": "strapi.svg",
+      "source_url": "https://svgl.app/library/strapi.svg",
+      "source_sha256": "f3635f9be4f4e600f4f1de3c5d23399aee6b2f2bf3a952d22676ccd28c779e87",
+      "monochrome_sha256": "4b188cf43329bff60733c5dcd0e7b4ed3f3afd6c46abdf46732241940b303be1",
+      "viewBox": "40.997980 70.458917 144.543103 144.543103"
+    },
+    {
+      "service": "Payload CMS",
+      "file": "payload.svg",
+      "source_url": "https://svgl.app/library/payload_dark.svg",
+      "source_sha256": "eda1c2d87051007a677d7bcfaea508181ca36b59a2db8f5868ad9f3b686c4e77",
+      "monochrome_sha256": "26e1afb256c85ad392b735c13d6a4a01e1a9804e31e2e325ed3252f1d64dabcd",
+      "viewBox": "-11.586207 -11.586207 279.172414 279.172414"
+    },
+    {
+      "service": "Qdrant",
+      "file": "qdrant.svg",
+      "source_url": "https://svgl.app/library/qdrant-icon-dark.svg",
+      "source_sha256": "1a061aa0ed894c8580b83e62934ae77d7d852d5020ba0d190b1c4daf7d713fad",
+      "monochrome_sha256": "7feb239b026b64ceca5d05930451805f29d00e2f05dec2c62ba99cc14b7f20cd",
+      "viewBox": "-6.622844 -3.310344 70.620690 70.620690"
+    },
+    {
+      "service": "NHost",
+      "file": "nhost.svg",
+      "source_url": "https://svgl.app/library/nhost.svg",
+      "source_sha256": "4175dfc0d972bdec1d4320ca719ef68234721ab3e83702f73e2cd91c6ae51605",
+      "monochrome_sha256": "d108b24e8dec2d4610f9c4d56184a67f2e8648b7e15cf4720424e23c75582f90",
+      "viewBox": "-22.326509 -14.093111 300.653017 300.653017"
+    },
+    {
+      "service": "Pocketbase",
+      "file": "pocket_base.svg",
+      "source_url": "https://svgl.app/library/pocket-base.svg",
+      "source_sha256": "9f96301c9d3569325abc4560a36c9ceadbbe34960acb1f43d9b7a1869e7a7d46",
+      "monochrome_sha256": "b0c5c628d5f5e43dc3a2468d4360475f4346a6421f76458fe183e25edb6ba4db",
+      "viewBox": "-14.086207 -14.086207 284.172414 284.172414"
+    },
+    {
+      "service": "Cockroach Labs",
+      "file": "cockroach_db.svg",
+      "source_url": "https://svgl.app/library/cockroachlabs-dark.svg",
+      "source_sha256": "e7b7fca458e886328f4c634e04298ee98702b08a088719e962e773b390df86f9",
+      "monochrome_sha256": "314238449dfea981a4d95196b3b250a7f4891eabbcb5dc2da76ed29fa89dd638",
+      "viewBox": "-11.306379 -8.621379 183.922759 183.922759"
+    },
+    {
+      "service": "Xata",
+      "file": "xata.svg",
+      "source_url": "https://svgl.app/library/xata.svg",
+      "source_sha256": "85ca51598b4267e5f9e979787ccc5e182b8328d63d2ec1e2c39f548e5b8f7356",
+      "monochrome_sha256": "bf896d32ed4d1f3e3b51b7b127110cd7fc686f5bd7b276b20336b4f4dbc0af7d",
+      "viewBox": "-7.482759 -6.982759 148.965517 148.965517"
+    },
+    {
+      "service": "Firecrawl",
+      "file": "firecrawl.svg",
+      "source_url": "https://svgl.app/library/firecrawl-dark.svg",
+      "source_sha256": "925752e210b3a9d943d35a95b1cd08bd8e94f016f97c6d43f7c5fc20a20275d5",
+      "monochrome_sha256": "54193176051bec251dfa32d2cb26e54d57eb0ee94e0a258aae6a533a31b52cd1",
+      "viewBox": "-14.345366 -3.345366 78.690733 78.690733"
+    },
+    {
+      "service": "Dub",
+      "file": "dub.svg",
+      "source_url": "https://svgl.app/library/dub_dark_logo.svg",
+      "source_sha256": "a912f1665ff127b1124de873d058bd08996ca592d3814e612d1c667b21073116",
+      "monochrome_sha256": "de828ca45aefef4fb4da271b51d7f79a8feded11feba821d4b0fdb518b0b8a7f",
+      "viewBox": "-3.310344 -3.310344 70.620690 70.620690"
+    },
+    {
+      "service": "Expo",
+      "file": "expo.svg",
+      "source_url": "https://svgl.app/library/expo.svg",
+      "source_sha256": "d304768a7a3c8de8638ead0c6bca24758cb39ee3065e42a6a7326024aa507555",
+      "monochrome_sha256": "431b9de1bd8ab0202ac461e5522424135615019df018a6746ce2c05b5f9d05c9",
+      "viewBox": "-13.241379 -26.241379 282.482759 282.482759"
+    },
+    {
+      "service": "hCaptcha",
+      "file": "hcaptcha.svg",
+      "source_url": "https://svgl.app/library/hcaptcha.svg",
+      "source_sha256": "cc4d45695601cdc6897e30bb4dff139a8fd8e035e0ebce8d5d7653e413370e28",
+      "monochrome_sha256": "e86637f07c958408e625ae18b3d3addfb373d5c270407a0c3d9f60e40316e409",
+      "viewBox": "-13.241379 -13.241379 282.482759 282.482759"
+    }
+  ]
+}

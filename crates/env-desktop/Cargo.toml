@@ -1,0 +1,43 @@
+[package]
+name = "env-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Native macOS editor for dotenv files"
+
+[[bin]]
+name = "dotvar"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = ["dep:gpui-kit", "dep:sys-locale", "macos-quit", "objc2-app-kit?/NSWindow"]
+macos-quit = ["dep:objc2", "dep:objc2-app-kit"]
+
+[dependencies]
+env-core = { path = "../env-core" }
+gpui-kit = { version = "=0.10.0", optional = true }
+tempfile = "=3.27.0"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+notify = "=8.2.2"
+async-channel = "=2.5.0"
+url = "=2.5.8"
+rust-i18n = "=4.2.4"
+sys-locale = { version = "=0.3.2", optional = true }
+
+[dev-dependencies]
+resvg = "=0.45.1"
+
+[target.'cfg(any(target_vendor = "apple", target_os = "linux"))'.dependencies]
+rustix = { version = "=1.1.6", features = ["fs"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "=0.6.5", optional = true }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder"], optional = true }
+
+[lints]
+workspace = true
+

@@ -1,0 +1,10 @@
+[package]
+name = "env-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Byte-preserving parser and editing model for dotenv files"
+
+[lints]
+workspace = true

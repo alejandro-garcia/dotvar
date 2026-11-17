@@ -1,0 +1,12 @@
+# Synthetic project settings; not production credentials.
+
+APP_NAME=Fixture
+EMPTY=
+  export PORT = 3000  # local port
+DUPLICATE=first
+# A comment between duplicate names.
+DUPLICATE=second
+UNICODE="mañana ☀ 日本語"
+REFERENCE=${APP_NAME}/$PORT
+EQUALS=left=right
+# Final comment.

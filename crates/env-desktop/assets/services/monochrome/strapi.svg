@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="40.997980 70.458917 144.543103 144.543103" fill="none">
+  <!--SVGL strapi.svg: original folded symbol paths; rounded-square backdrop omitted and fold kept as an alpha tone.-->
+  <defs>
+    <mask id="mono" maskUnits="userSpaceOnUse" x="44" y="74" width="138" height="138" style="mask-type:luminance">
+      <g fill="#fff">
+        <path fill="#fff" d="M176.64 77.653H90.453V121.6H134.4v43.946h43.946V79.36c0-.943-.764-1.707-1.706-1.707Z" />
+        <path fill="#fff" d="M132.693 121.6h1.707v1.707h-1.707z" />
+        <path fill="#888" d="M90.453 121.6h42.24c.943 0 1.707.764 1.707 1.706v42.24H92.16a1.706 1.706 0 0 1-1.707-1.706V121.6ZM134.4 165.546h43.946l-42.49 42.49c-.537.538-1.456.157-1.456-.602v-41.888ZM90.453 121.6H48.566c-.76 0-1.14-.92-.603-1.457l42.49-42.49V121.6Z" />
+      </g>
+    </mask>
+  </defs>
+  <rect x="44" y="74" width="138" height="138" fill="#fff" mask="url(#mono)" />
+</svg>

@@ -1,0 +1,32 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.16078,0.14510,0.14118,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "solid" : "srgb:0.98039,0.98039,0.97647,1.00000"
+          },
+          "image-name" : "iso-logo.svg",
+          "name" : "iso-logo"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

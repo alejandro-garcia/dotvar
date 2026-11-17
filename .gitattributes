@@ -1,0 +1,3 @@
+# Keep asset checksums and byte-oriented fixtures stable across checkouts.
+*.svg -text
+*.fixture -text

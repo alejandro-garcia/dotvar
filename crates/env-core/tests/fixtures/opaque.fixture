@@ -1,0 +1,11 @@
+# Unsupported fragments remain exactly where they were.
+KNOWN=safe
+not an assignment
+NOT-COMMON=opaque
+INLINE=abc#def
+COMMAND=$(printf synthetic)
+BACKTICK=`printf synthetic`
+SHELL=value; echo synthetic
+AFTER=safe
+UNCLOSED="unfinished
+LOOKS_SAFE=but still inside uncertain token
