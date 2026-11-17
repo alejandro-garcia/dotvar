@@ -4,19 +4,28 @@
 
 # Dotvar
 
-Dotvar is a native macOS editor for `.env` files. Open a project, switch between its environment files, and edit variables and comments while preserving the rest of each file byte for byte.
+Dotvar is a blazing-fast, privacy-first `.env` editor for macOS. Keep your project's environment files in one window, find the variable you need, and make precise edits that preserve the file's original formatting.
 
-## What you can do
+## Why Dotvar?
 
-- Open a file or a folder. Dotvar finds `.env`, `.env.*`, and `*.env` files at the folder's root and remembers projects and tabs locally.
-- Edit names, values, and comments in place. Add assignments by pasting dotenv text, reorder rows, and undo or redo edits.
-- Search by variable name. Reveal individual values when needed, or copy a value or the entire working document, including pending valid edits.
-- Recognize common services from key names and values using [bundled icons](docs/service-icons.md). Environment colors help distinguish local, staging, and production files.
-- See external changes as they happen. If you have unsaved edits, Dotvar keeps them and lets you resolve the conflict or save a separate copy.
+- ⚡ **Find any key fast.** Search by variable name and scroll smoothly through long files.
+- 🔒 **Keep secrets local.** Dotvar edits files on your Mac, hides values by default, and recognizes providers offline.
+- 📂 **Switch between environments.** Open a folder and Dotvar finds `.env`, `.env.*`, and `*.env` files at its root. Pick up where you left off with remembered projects and tabs.
+- ✏️ **Edit in place.** Change names, values, and comments, paste new assignments, reorder rows, and undo or redo edits.
+- 🎨 **Spot services at a glance.** Provider icons identify common services. Environment colors distinguish local, staging, and production files. [Service icon guide](docs/service-icons.md)
+- 📋 **Copy just what you need.** Copy one value or the entire working file, including valid unsaved edits.
+- 🔄 **Catch changes from other tools.** Dotvar reloads files as they change on disk and flags conflicts when you have unsaved edits, so you can resolve the conflict or save a separate copy.
+
+## Built with Rust and GPUI
+
+- **Rust** gives the file editor a memory-safe foundation. Each edit updates only the relevant bytes, keeping the rest of the file intact.
+- **GPUI**, through **GPUI Kit**, powers the native macOS interface with GPU-accelerated rendering.
 
 ## Get started on macOS
 
 The supported target is Apple Silicon. The app bundle declares macOS 15 as its minimum version.
+
+See [GitHub Releases](https://github.com/nicoandrade/dotvar/releases) for downloadable builds. To install from a DMG, open it and drag Dotvar to Applications.
 
 To build and run from source, install [Rust with rustup](https://rustup.rs/) and [Xcode](https://developer.apple.com/xcode/). From the repository root, run:
 
@@ -46,7 +55,7 @@ To create a local `Dotvar.app`, run `python3 scripts/package-macos.py` and open 
 | Save / Save As | **⌘S** / **⇧⌘S** |
 | Copy the working document | **⇧⌘C** |
 
-Values start hidden. Copy actions write literal values to the macOS clipboard, including hidden values. Dotvar reads and edits files locally, and service detection runs offline. The local catalog stores file and project paths, tab order, and selection. Preferences are stored alongside it in `~/Library/Application Support/Dotvar`.
+Copy actions write literal values to the macOS clipboard, including hidden values. The local catalog stores file and project paths, tab order, and selection. Preferences are stored alongside it in `~/Library/Application Support/Dotvar`.
 
 Dotvar preserves comments, untouched whitespace, line endings, and UTF-8 BOMs. It treats variables, escapes, and shell expressions as literal text. Ambiguous syntax is kept as opaque text, and files with invalid UTF-8 open read-only. See the [dotenv grammar and editing guarantees](crates/env-core/README.md).
 

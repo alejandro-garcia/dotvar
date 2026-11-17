@@ -51,12 +51,18 @@ def distribution_credentials(root):
     return identity, credentials
 
 
-def build_executable(root):
-    metadata = json.loads(subprocess.check_output(
+def cargo_metadata(root):
+    return json.loads(subprocess.check_output(
         ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"], cwd=root
     ))
-    version = next(package["version"] for package in metadata["packages"]
-                   if package["name"] == "env-desktop")
+
+
+def app_version(metadata):
+    return next(package["version"] for package in metadata["packages"]
+                if package["name"] == "env-desktop")
+
+
+def build_executable(root, metadata):
     build_directory = Path(metadata["target_directory"])
     if metadata.get("build_directory"):
         build_directory = Path(metadata["build_directory"])
@@ -71,8 +77,7 @@ def build_executable(root):
     subprocess.run(["cargo", "build", "-p", "env-desktop", "--bin", "dotvar",
                     "--release", "--locked", "--target", TARGET], cwd=root,
                    env=environment, check=True)
-    executable = Path(metadata["target_directory"]) / TARGET / "release" / "dotvar"
-    return executable, version
+    return Path(metadata["target_directory"]) / TARGET / "release" / "dotvar"
 
 
 def create_app(app, executable, icon, version, identity):
@@ -167,17 +172,16 @@ def install_result(staged, output, work):
     return destination
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--distribution", action="store_true", help="sign and notarize an installable DMG")
-    args = parser.parse_args()
+def require_signing_mac():
     if platform.system() != "Darwin" or platform.machine() != "arm64":
         raise SystemExit("Run this script on an Apple Silicon Mac.")
 
-    root = Path(__file__).resolve().parent.parent
-    output = root / "dist"
-    identity, credentials = distribution_credentials(root) if args.distribution else ("-", None)
-    executable, version = build_executable(root)
+
+def package(root, output, signing=None):
+    identity, credentials = signing if signing else ("-", None)
+    metadata = cargo_metadata(root)
+    version = app_version(metadata)
+    executable = build_executable(root, metadata)
     output.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".dotvar-", dir=output) as directory:
         work = Path(directory)
@@ -185,10 +189,20 @@ def main():
         app = source / APP_NAME
         create_app(app, executable, root / "assets" / "Dotvar.icns", version, identity)
         result = app
-        if args.distribution:
+        if credentials:
             result = create_distribution(work, source, version, identity, credentials)
         destination = install_result(result, output, work)
-    print(destination / f"{destination.name}.dmg" if args.distribution else destination)
+    return destination / f"{destination.name}.dmg" if credentials else destination
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--distribution", action="store_true", help="sign and notarize an installable DMG")
+    args = parser.parse_args()
+    require_signing_mac()
+    root = Path(__file__).resolve().parent.parent
+    signing = distribution_credentials(root) if args.distribution else None
+    print(package(root, root / "dist", signing))
 
 
 if __name__ == "__main__":

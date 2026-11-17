@@ -57,3 +57,15 @@ The script builds the arm64 release with the macOS 15 deployment target, remaps 
 For maintainers preparing a distribution build, `python3 scripts/package-macos.py --distribution` uses a Developer ID Application certificate and a `notarytool` profile in the local Keychain. Set `NOTARY_PROFILE` or store `notary_profile` in the ignored `local/release.json`. If multiple certificates are available, `SIGN_IDENTITY` selects the certificate by fingerprint. `NOTARY_KEYCHAIN` selects an alternate Keychain. The script signs, notarizes, and validates the DMG, then writes it and a SHA-256 checksum under `dist/`.
 
 Before shipping a binary, assemble the license texts and notices for the versions included in that build and check the packaged artifacts for local metadata. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Publish a GitHub release
+
+On the signing Mac, install [GitHub CLI](https://cli.github.com/) and use `gh auth login` with write access to `nicoandrade/dotvar`. The release script uses the same local Keychain setup as the distribution build.
+
+1. Set the release version in `[workspace.package]` in `Cargo.toml` and run `cargo update --workspace` to update `Cargo.lock`. To provide release notes, move the relevant changelog entries under a version heading such as `## [0.1.0] - YYYY-MM-DD`.
+2. Commit and push the reviewed release source to the default branch (`master`).
+3. Run `python3 scripts/release.py --publish` from that branch on the signing Mac.
+
+The script waits for CI on the release commit, packages that commit in a clean directory, signs and notarizes the DMG, then uploads `Dotvar.dmg` and `Dotvar.dmg.sha256` to a draft. It compares GitHub's asset digests with the local files before publishing as Latest and checks both downloads without authentication. It uses the version's changelog entry when available and otherwise asks GitHub to generate release notes. Use `python3 scripts/release.py --check` to check access and signing, or run `python3 scripts/release.py` for a signed rehearsal on your current checkout.
+
+If an upload is interrupted, rerun the publish command from the same commit. It reuses the verified package under `dist/releases/` and resumes a matching draft. If the assets disagree, the script stops so the draft can be inspected. Published downloads use a [stable Latest URL](https://github.com/nicoandrade/dotvar/releases/latest/download/Dotvar.dmg) across versions.
