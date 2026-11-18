@@ -3,7 +3,7 @@ use crate::i18n::{diagnostic_message, edit_error_message, tr};
 use crate::session::QuoteStyle;
 use env_core::{BlockKind, TextField};
 use gpui_kit::component::{
-    InteractiveElementExt, Size, ThemeStyled,
+    Icon, InteractiveElementExt, Size, ThemeStyled,
     input::{Escape, Input, Textarea, TextareaState},
     scroll::{ScrollableMask, Scrollbar, ScrollbarMode},
 };
@@ -38,6 +38,7 @@ fn quote_decoration(
     style: QuoteStyle,
     content: Option<String>,
     scroll: QuoteScroll,
+    color: u32,
 ) -> impl IntoElement {
     canvas(
         |_, _, _| (),
@@ -49,7 +50,7 @@ fn quote_decoration(
                 QuoteScroll::Editor(state) => state.read(cx).scroll_offset(),
                 QuoteScroll::Preview(handle) => handle.offset(),
             };
-            let quote = value_line(delimiter, design::QUOTE_COLOR, window);
+            let quote = value_line(delimiter, color, window);
             let inset = quote.width + px(design::QUOTE_GAP);
             let (last_width, last_row) = match &content {
                 Some(content) => {
@@ -118,7 +119,7 @@ fn hidden_pattern() -> impl IntoElement {
             window.paint_quad(
                 fill(
                     bounds,
-                    pattern_slash(rgb(0x57534d), stroke, 5. * scale - stroke),
+                    pattern_slash(rgb(design::QUOTE_COLOR), stroke, 5. * scale - stroke),
                 )
                 .corner_radii(px(4.)),
             );
@@ -136,7 +137,9 @@ fn key_column_width(window: &Window) -> Pixels {
     })
 }
 
-fn quote_button(id: impl Into<ElementId>, quote_style: QuoteStyle) -> Button {
+fn quote_button(id: impl Into<ElementId>, quote_style: QuoteStyle, commented: bool) -> Button {
+    let icon = design::quote_icon(quote_style);
+    let (width, height) = icon.dimensions();
     Button::new(id)
         .ghost()
         .tab_stop(false)
@@ -155,24 +158,61 @@ fn quote_button(id: impl Into<ElementId>, quote_style: QuoteStyle) -> Button {
             current = quote_style.label(),
             next = quote_style.next().label(),
         ))
-        .child(design::asset(design::quote_icon(quote_style)))
+        .child(if commented {
+            svg()
+                .path(icon.path())
+                .w(px(width))
+                .h(px(height))
+                .text_color(rgb(SECONDARY))
+                .into_any_element()
+        } else {
+            design::asset(icon).into_any_element()
+        })
+}
+
+fn variable_menu_icon(svg: &[u8]) -> Icon {
+    // PopupMenu applies its extra-small size. Match the project menu's 16px
+    // icon and 8px gap while keeping the standard menu item's accessible label.
+    Icon::empty()
+        .data(svg)
+        .text_color(rgb(SECONDARY))
+        .min_w(px(16.))
+        .min_h(px(16.))
+        .mr(px(4.))
+}
+
+fn delete_variable_menu_item() -> PopupMenuItem {
+    PopupMenuItem::new(tr!("variable.delete")).icon(variable_menu_icon(include_bytes!(
+        "../../assets/actions/variable-menu/trash-2.svg"
+    )))
 }
 
 fn value_editor_frame(
     state: &Entity<TextareaState>,
     textarea: Textarea,
-    value: &str,
     quote_style: QuoteStyle,
     quote_button: Option<Button>,
+    commented: bool,
     window: &Window,
     cx: &App,
 ) -> Div {
     let size = Size::Small;
-    let lines = state.read(cx).value().split('\n').count();
+    let value = state.read(cx).value();
+    let lines = value.split('\n').count();
+    let color = if commented {
+        SECONDARY
+    } else {
+        design::VALUE_COLOR
+    };
+    let quote_color = if commented {
+        SECONDARY
+    } else {
+        design::QUOTE_COLOR
+    };
     let quote_inset = quote_style.delimiter().map_or(px(0.), |quote| {
-        value_line(quote, design::QUOTE_COLOR, window).width + px(design::QUOTE_GAP)
+        value_line(quote, quote_color, window).width + px(design::QUOTE_GAP)
     });
-    design::variable_field()
+    design::variable_field(commented)
         .pl(px(design::FIELD_PADDING_X) - size.input_px() + quote_inset)
         .pr(px(design::FIELD_PADDING_X + design::QUOTE_BUTTON_SIZE) - size.input_px() + quote_inset)
         .py(px(design::FIELD_PADDING_Y) - size.input_py())
@@ -186,7 +226,7 @@ fn value_editor_frame(
                 .with_size(size)
                 .h(px(lines as f32 * design::FIELD_LINE_HEIGHT) + size.input_py() * 2.)
                 .text_size(px(12.))
-                .text_color(rgb(design::VALUE_COLOR))
+                .text_color(rgb(color))
                 .font_weight(FontWeight::NORMAL)
                 .line_height(px(design::FIELD_LINE_HEIGHT)),
         )
@@ -203,8 +243,9 @@ fn value_editor_frame(
         )
         .child(quote_decoration(
             quote_style,
-            Some(value.to_owned()),
+            Some(value.to_string()),
             QuoteScroll::Editor(state.clone()),
+            quote_color,
         ))
         .when_some(quote_button, |this, button| {
             this.child(div().absolute().top(px(2.)).right(px(2.)).child(button))
@@ -269,6 +310,22 @@ impl AppWindow {
             return div().into_any_element();
         };
         let owner = cx.weak_entity();
+        let discard = owner.clone();
+        let actions = Button::new(("new-variable-actions", id))
+            .ghost()
+            .w(px(16.))
+            .h(px(16.))
+            .p_0()
+            .border_0()
+            .accessibility_label(tr!("variable.new_actions"))
+            .tooltip(tr!("variable.new_actions"))
+            .child(design::asset(Asset::GenericNeutral))
+            .dropdown_menu(move |menu, _, _| {
+                let discard = discard.clone();
+                menu.item(delete_variable_menu_item().on_click(move |_, window, cx| {
+                    let _ = discard.update(cx, |this, cx| this.cancel_new_variable(id, window, cx));
+                }))
+            });
         let paste_duplicate = row
             .paste_issue
             .as_ref()
@@ -283,22 +340,22 @@ impl AppWindow {
             value_editor_frame(
                 &row.value,
                 Textarea::new(&row.value).aria_label(tr!("variable.new_literal")),
-                &draft.value,
                 style,
                 Some(
-                    quote_button("new-variable-quotes", style).on_click(cx.listener(
+                    quote_button("new-variable-quotes", style, false).on_click(cx.listener(
                         move |this, _, window, cx| {
                             this.update_new_variable(id, Some(style.next()), cx);
                             this.focus_new_variable(id, true, window, cx);
                         },
                     )),
                 ),
+                false,
                 window,
                 cx,
             )
             .into_any_element()
         } else {
-            design::variable_field()
+            design::variable_field(false)
                 .id("new-variable-hidden")
                 .role(Role::Button)
                 .aria_label(tr!("variable.show_value"))
@@ -359,7 +416,7 @@ impl AppWindow {
                             .flex()
                             .items_center()
                             .gap(px(10.))
-                            .child(design::asset(Asset::GenericNeutral))
+                            .child(actions)
                             .child(
                                 div().flex_1().min_w_0().mx(px(-4.)).child(
                                     Input::new(&row.name)
@@ -503,13 +560,21 @@ impl AppWindow {
         prefix: &str,
         cx: &mut Context<Self>,
     ) -> AnyElement {
-        let (color, font_size, weight) = if matches!(field, TextField::Name(_)) {
-            (KEY_COLOR, 14., FontWeight::MEDIUM)
-        } else {
-            (SECONDARY, 12., FontWeight::NORMAL)
-        };
         let Some(session) = self.tab(tab_id).and_then(|tab| tab.content.as_ref()) else {
             return div().into_any_element();
+        };
+        let (color, font_size, weight) = if let TextField::Name(id) = field {
+            let commented = session
+                .document
+                .entry(id)
+                .is_some_and(|entry| entry.commented);
+            (
+                if commented { SECONDARY } else { KEY_COLOR },
+                14.,
+                FontWeight::MEDIUM,
+            )
+        } else {
+            (SECONDARY, 12., FontWeight::NORMAL)
         };
         let text = session.field_text(field).unwrap_or("");
         let text = if matches!(field, TextField::Comment(_)) {
@@ -559,7 +624,10 @@ impl AppWindow {
                 .flex_1()
                 .min_w_0()
                 .h(px(18.))
-                .when(matches!(field, TextField::Name(id) if self.tab(tab_id).is_some_and(|tab| tab.matched == Some(id))), |this| this.bg(rgb(0x4a3822)).rounded_sm())
+                .when(matches!(field, TextField::Name(id) if self.tab(tab_id).is_some_and(|tab| tab.matched == Some(id))), |this| {
+                    let highlight = if color == SECONDARY { design::SELECTOR_BG } else { 0x4a3822 };
+                    this.bg(rgb(highlight)).rounded_sm()
+                })
                 .tooltip(move |window, cx| Tooltip::new(tooltip.clone()).build(window, cx))
                 .cursor_text()
                 .role(Role::Button)
@@ -916,6 +984,17 @@ impl AppWindow {
         let element = match &block.kind {
             BlockKind::Assignment(entry) => {
                 let id = entry.id;
+                let commented = entry.commented;
+                let color = if commented {
+                    SECONDARY
+                } else {
+                    design::VALUE_COLOR
+                };
+                let quote_color = if commented {
+                    SECONDARY
+                } else {
+                    design::QUOTE_COLOR
+                };
                 let name = session
                     .field_text(TextField::Name(id))
                     .unwrap_or("")
@@ -924,7 +1003,7 @@ impl AppWindow {
                 let value = session.value_content(id).unwrap_or("");
                 let quote_style = session.quote_style(id).unwrap_or(QuoteStyle::Unquoted);
                 let quote_inset = quote_style.delimiter().map_or(px(0.), |quote| {
-                    value_line(quote, design::QUOTE_COLOR, window).width + px(design::QUOTE_GAP)
+                    value_line(quote, quote_color, window).width + px(design::QUOTE_GAP)
                 });
                 let editing = self
                     .editor
@@ -937,20 +1016,20 @@ impl AppWindow {
                         .focus_handle(cx)
                         .is_focused(window)
                         .then(|| {
-                            quote_button(("cycle-quotes", id.0), quote_style).on_click(cx.listener(
-                                move |this, _, window, cx| {
+                            quote_button(("cycle-quotes", id.0), quote_style, commented).on_click(
+                                cx.listener(move |this, _, window, cx| {
                                     this.cycle_quotes(tab_id, id, window, cx);
-                                },
-                            ))
+                                }),
+                            )
                         });
                     value_editor_frame(
                         &editor.state,
                         Textarea::new(&editor.state)
                             .aria_label(tr!("variable.value", name = name))
                             .accessibility_id(format!("value-editor-{}", id.0)),
-                        value,
                         quote_style,
                         button,
+                        commented,
                         window,
                         cx,
                     )
@@ -987,7 +1066,7 @@ impl AppWindow {
                                                 weight: FontWeight::NORMAL,
                                                 ..Default::default()
                                             },
-                                            color: rgb(design::VALUE_COLOR).into(),
+                                            color: rgb(color).into(),
                                             background_color: None,
                                             underline: None,
                                             strikethrough: None,
@@ -1001,7 +1080,7 @@ impl AppWindow {
                     } else {
                         px(1.)
                     };
-                    design::variable_field()
+                    design::variable_field(commented)
                         .id(("edit-value", id.0))
                         .flex_1()
                         .pl(px(design::FIELD_PADDING_X) + quote_inset)
@@ -1055,9 +1134,7 @@ impl AppWindow {
                                                                     .line_height(px(
                                                                         design::FIELD_LINE_HEIGHT,
                                                                     ))
-                                                                    .text_color(rgb(
-                                                                        design::VALUE_COLOR,
-                                                                    )),
+                                                                    .text_color(rgb(color)),
                                                                 )
                                                         },
                                                     )),
@@ -1089,6 +1166,7 @@ impl AppWindow {
                             quote_style,
                             (revealed || value.is_empty()).then(|| value.to_owned()),
                             QuoteScroll::Preview(preview_scroll.clone()),
+                            quote_color,
                         ))
                         .into_any_element()
                 };
@@ -1104,45 +1182,72 @@ impl AppWindow {
                         .border_0()
                         .accessibility_label(tr!("variable.actions", name = name))
                         .tooltip(tr!("variable.actions", name = name))
-                        .child(design::variable_asset(
-                            &name,
-                            session.value(id).unwrap_or(""),
-                            env,
-                        )),
+                        .child(if commented {
+                            design::asset(Asset::Comment).into_any_element()
+                        } else {
+                            design::variable_asset(&name, session.value(id).unwrap_or(""), env)
+                                .into_any_element()
+                        }),
                     move |menu, _, _| {
                         let edit = weak.clone();
                         let copy = weak.clone();
                         let rename = weak.clone();
+                        let toggle_comment = weak.clone();
                         let remove = weak.clone();
-                        menu.item(PopupMenuItem::new(tr!("variable.edit_value")).on_click(
-                            move |_, window, cx| {
-                                let _ = edit.update(cx, |this, cx| {
-                                    this.begin_editor(tab_id, id, window, cx)
-                                });
-                            },
-                        ))
-                        .item(PopupMenuItem::new(tr!("variable.copy_value")).on_click(
-                            move |_, window, cx| {
-                                let _ = copy
-                                    .update(cx, |this, cx| this.copy_entry(tab_id, id, window, cx));
-                            },
-                        ))
-                        .item(PopupMenuItem::new(tr!("variable.rename_action")).on_click(
-                            move |_, window, cx| {
-                                let _ = rename
-                                    .update(cx, |this, cx| this.open_rename_dialog(id, window, cx));
-                            },
-                        ))
-                        .separator()
-                        .item(
-                            PopupMenuItem::new(tr!("variable.delete")).on_click(
-                                move |_, window, cx| {
-                                    let _ = remove.update(cx, |this, cx| {
-                                        this.remove_variable(tab_id, id, window, cx)
+                        menu.item(
+                            PopupMenuItem::new(tr!("variable.edit_value"))
+                                .icon(variable_menu_icon(include_bytes!(
+                                    "../../assets/actions/variable-menu/input-password-edit.svg"
+                                )))
+                                .on_click(move |_, window, cx| {
+                                    let _ = edit.update(cx, |this, cx| {
+                                        this.begin_editor(tab_id, id, window, cx)
                                     });
-                                },
-                            ),
+                                }),
                         )
+                        .item(
+                            PopupMenuItem::new(tr!("variable.copy_value"))
+                                .icon(variable_menu_icon(include_bytes!(
+                                    "../../assets/actions/variable-menu/duplicate.svg"
+                                )))
+                                .on_click(move |_, window, cx| {
+                                    let _ = copy.update(cx, |this, cx| {
+                                        this.copy_entry(tab_id, id, window, cx)
+                                    });
+                                }),
+                        )
+                        .item(
+                            PopupMenuItem::new(tr!("variable.rename_action"))
+                                .icon(variable_menu_icon(include_bytes!(
+                                    "../../assets/actions/variable-menu/file-pen.svg"
+                                )))
+                                .on_click(move |_, window, cx| {
+                                    let _ = rename.update(cx, |this, cx| {
+                                        this.open_rename_dialog(id, window, cx)
+                                    });
+                                }),
+                        )
+                        .item(
+                            PopupMenuItem::new(if commented {
+                                tr!("variable.uncomment")
+                            } else {
+                                tr!("variable.comment")
+                            })
+                            .icon(variable_menu_icon(include_bytes!(
+                                "../../assets/actions/variable-menu/circle-hashtag.svg"
+                            )))
+                            .on_click(move |_, window, cx| {
+                                let _ = toggle_comment.update(cx, |this, cx| {
+                                    this.set_variable_commented(tab_id, id, !commented, window, cx);
+                                });
+                            }),
+                        )
+                        .separator()
+                        .item(delete_variable_menu_item().on_click(move |_, window, cx| {
+                            let _ = remove.update(cx, |this, cx| {
+                                this.remove_variable(tab_id, id, window, cx)
+                            });
+                        }))
                     },
                     window,
                     cx,

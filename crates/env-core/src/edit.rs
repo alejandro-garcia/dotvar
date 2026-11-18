@@ -1,6 +1,8 @@
 use std::{collections::HashSet, fmt, ops::Range};
 
-use crate::{Assignment, Block, BlockKind, Document, EntryId, TextField};
+use crate::{
+    Assignment, Block, BlockKind, Document, EntryId, TextField, parser::COMMENT_CONTINUATION,
+};
 
 pub const HISTORY_MAX_OPERATIONS: usize = 100;
 pub const HISTORY_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -261,7 +263,8 @@ impl Document {
         match (&old.kind, &new.kind) {
             (BlockKind::Comment, BlockKind::Comment) => {}
             (BlockKind::Assignment(old), BlockKind::Assignment(new))
-                if old.name == new.name
+                if old.commented == new.commented
+                    && old.name == new.name
                     && old.value == new.value
                     && new.inline_comment
                         == old
@@ -286,8 +289,8 @@ impl Document {
         expected_revision: u64,
     ) -> Result<bool, EditError> {
         self.require_revision(expected_revision)?;
-        let entry = self.entry(id).ok_or(EditError::MissingEntry(id))?;
-        if self.text(entry.value.clone()) == Some(token) {
+        let old = self.entry_value(id).ok_or(EditError::MissingEntry(id))?;
+        if old == token {
             return Ok(false);
         }
         let candidate = self.value_candidate(id, token)?;
@@ -312,7 +315,8 @@ impl Document {
         let candidate = self.patch(entry.name.clone(), name.as_bytes().to_vec());
         self.check_unchanged_blocks(&candidate, index)?;
         let replacement = assignment(&candidate.blocks[index]).ok_or(EditError::UnsafeBoundary)?;
-        if replacement.name != (entry.name.start..entry.name.start + name.len())
+        if replacement.commented != entry.commented
+            || replacement.name != (entry.name.start..entry.name.start + name.len())
             || replacement.value
                 != shifted(
                     &entry.value,
@@ -326,6 +330,71 @@ impl Document {
                     candidate.range.len(),
                 )
             || candidate.blocks[index].range
+                != (block.range.start
+                    ..shift(
+                        block.range.end,
+                        candidate.replacement.len(),
+                        candidate.range.len(),
+                    ))
+        {
+            return Err(EditError::UnsafeBoundary);
+        }
+        self.commit(candidate, self.entry_ids())
+    }
+
+    /// Toggle one assignment without changing its identity or literal token.
+    pub fn set_commented(
+        &mut self,
+        id: EntryId,
+        commented: bool,
+        expected_revision: u64,
+    ) -> Result<bool, EditError> {
+        self.require_revision(expected_revision)?;
+        let (index, block, entry) = self.find_entry(id)?;
+        if entry.commented == commented {
+            return Ok(false);
+        }
+        let marker = self.bytes[block.range.start..entry.name.start]
+            .iter()
+            .position(|byte| !matches!(byte, b' ' | b'\t'))
+            .map_or(entry.name.start, |offset| block.range.start + offset);
+        let (range, replacement) = if commented {
+            let source = &self.bytes[marker..block.range.end];
+            let body = without_terminator(source);
+            if body.contains(&b'\n') {
+                let mut replacement = b"# ".to_vec();
+                replacement.extend(comment_continuations(body));
+                (marker..marker + body.len(), replacement)
+            } else {
+                (marker..marker, b"# ".to_vec())
+            }
+        } else {
+            let after_hash = marker + 1;
+            let start =
+                after_hash + usize::from(matches!(self.bytes.get(after_hash), Some(b' ' | b'\t')));
+            if entry.uncommented_value.is_some() {
+                let body = without_terminator(&self.bytes[start..block.range.end]);
+                let mut lines = body.split_inclusive(|byte| *byte == b'\n');
+                let mut replacement = lines.next().ok_or(EditError::UnsafeBoundary)?.to_vec();
+                for line in lines {
+                    replacement.extend_from_slice(
+                        line.strip_prefix(COMMENT_CONTINUATION)
+                            .ok_or(EditError::UnsafeBoundary)?,
+                    );
+                }
+                (marker..start + body.len(), replacement)
+            } else {
+                (marker..start, Vec::new())
+            }
+        };
+        let candidate = self.patch(range, replacement);
+        self.check_unchanged_blocks(&candidate, index)?;
+        let changed = &candidate.blocks[index];
+        let parsed = assignment(changed).ok_or(EditError::UnsafeBoundary)?;
+        if parsed.commented != commented
+            || candidate.bytes[parsed.name.clone()] != self.bytes[entry.name.clone()]
+            || parsed.value_bytes(&candidate.bytes) != entry.value_bytes(&self.bytes)
+            || changed.range
                 != (block.range.start
                     ..shift(
                         block.range.end,
@@ -353,7 +422,8 @@ impl Document {
         if !allow_duplicate
             && let Some(existing) = self.blocks.iter().find_map(|block| {
                 let entry = assignment(block)?;
-                (self.text(entry.name.clone()) == Some(name)).then_some(entry.id)
+                (!entry.commented && self.text(entry.name.clone()) == Some(name))
+                    .then_some(entry.id)
             })
         {
             return Err(EditError::DuplicateName { existing });
@@ -422,13 +492,18 @@ impl Document {
         }
         if !allow_duplicates {
             let mut existing = std::collections::HashMap::new();
-            for entry in self.blocks.iter().filter_map(assignment) {
+            for entry in self
+                .blocks
+                .iter()
+                .filter_map(assignment)
+                .filter(|entry| !entry.commented)
+            {
                 existing
                     .entry(&self.bytes[entry.name.clone()])
                     .or_insert(entry.id);
             }
             let mut names = HashSet::new();
-            for entry in &entries {
+            for entry in entries.iter().filter(|entry| !entry.commented) {
                 let name = &fragment.bytes[entry.name.clone()];
                 if let Some(&existing) = existing.get(name) {
                     return Err(EditError::DuplicateName { existing });
@@ -469,11 +544,7 @@ impl Document {
         for (index, block) in blocks.iter().enumerate() {
             let start = self.bytes.len() + replacement.len();
             let source = &fragment.bytes[block.range.clone()];
-            let body = source
-                .strip_suffix(b"\r\n")
-                .or_else(|| source.strip_suffix(b"\n"))
-                .unwrap_or(source);
-            replacement.extend_from_slice(body);
+            replacement.extend_from_slice(without_terminator(source));
             if index + 1 < blocks.len() || final_newline {
                 replacement.extend_from_slice(newline);
             }
@@ -544,9 +615,15 @@ impl Document {
         for (old_index, old) in self.blocks.iter().enumerate() {
             if old_index == index {
                 if keeps_comment
-                    && (!matches!(candidate.blocks[index].kind, BlockKind::Comment)
-                        || candidate.blocks[index].range
-                            != (block.range.start..block.range.start + candidate.replacement.len()))
+                    && (!matches!(
+                        candidate.blocks[index].kind,
+                        BlockKind::Comment
+                            | BlockKind::Assignment(Assignment {
+                                commented: true,
+                                ..
+                            })
+                    ) || candidate.blocks[index].range
+                        != (block.range.start..block.range.start + candidate.replacement.len()))
                 {
                     return Err(EditError::UnsafeBoundary);
                 }
@@ -565,11 +642,24 @@ impl Document {
                 return Err(EditError::UnsafeBoundary);
             }
         }
-        let ids = self
-            .entry_ids()
-            .into_iter()
-            .filter(|entry_id| *entry_id != id)
-            .collect();
+        let mut ids = self.entry_ids();
+        // An inline comment that looks like a variable becomes a commented
+        // assignment when it stands alone, with its own identity.
+        if keeps_comment && assignment(&candidate.blocks[index]).is_some() {
+            let next_id = self
+                .next_id
+                .checked_add(1)
+                .ok_or(EditError::IdentityExhausted)?;
+            let position = ids
+                .iter()
+                .position(|entry_id| *entry_id == id)
+                .expect("removed assignment has an ID");
+            ids[position] = EntryId(self.next_id);
+            let changed = self.commit(candidate, ids)?;
+            self.next_id = next_id;
+            return Ok(changed);
+        }
+        ids.retain(|entry_id| *entry_id != id);
         self.commit(candidate, ids)
     }
 
@@ -672,7 +762,11 @@ impl Document {
 
     fn value_candidate(&self, id: EntryId, token: &str) -> Result<Candidate, EditError> {
         let (index, block, entry) = self.find_entry(id)?;
-        let mut replacement = token.as_bytes().to_vec();
+        let mut replacement = if entry.commented {
+            comment_continuations(token.as_bytes())
+        } else {
+            token.as_bytes().to_vec()
+        };
         // An originally empty token may share its offset with `#`. Inserting
         // a value needs a separator; the existing prefix/comment stay intact.
         if !token.is_empty()
@@ -687,8 +781,9 @@ impl Document {
         self.check_unchanged_blocks(&candidate, index)
             .map_err(|_| EditError::InvalidValue)?;
         let changed = assignment(&candidate.blocks[index]).ok_or(EditError::InvalidValue)?;
-        if changed.name != entry.name
-            || candidate.bytes.get(changed.value.clone()) != Some(token.as_bytes())
+        if changed.commented != entry.commented
+            || changed.name != entry.name
+            || changed.value_bytes(&candidate.bytes) != Some(token.as_bytes())
             || changed.inline_comment
                 != shift_optional(
                     &entry.inline_comment,
@@ -775,6 +870,25 @@ impl Document {
     }
 }
 
+fn without_terminator(source: &[u8]) -> &[u8] {
+    source
+        .strip_suffix(b"\r\n")
+        .or_else(|| source.strip_suffix(b"\n"))
+        .unwrap_or(source)
+}
+
+fn comment_continuations(source: &[u8]) -> Vec<u8> {
+    let mut commented = Vec::with_capacity(source.len());
+    for (index, line) in source.split(|byte| *byte == b'\n').enumerate() {
+        if index > 0 {
+            commented.push(b'\n');
+            commented.extend_from_slice(COMMENT_CONTINUATION);
+        }
+        commented.extend_from_slice(line);
+    }
+    commented
+}
+
 fn assignment(block: &Block) -> Option<&Assignment> {
     match &block.kind {
         BlockKind::Assignment(entry) => Some(entry),
@@ -856,7 +970,8 @@ fn same_kind_ranges(old: &BlockKind, new: &BlockKind, inserted: usize, removed: 
         (BlockKind::Blank, BlockKind::Blank) | (BlockKind::Comment, BlockKind::Comment) => true,
         (BlockKind::Opaque(old), BlockKind::Opaque(new)) => old == new,
         (BlockKind::Assignment(old), BlockKind::Assignment(new)) => {
-            new.name == shifted(&old.name, inserted, removed)
+            new.commented == old.commented
+                && new.name == shifted(&old.name, inserted, removed)
                 && new.value == shifted(&old.value, inserted, removed)
                 && new.inline_comment == shift_optional(&old.inline_comment, inserted, removed)
         }

@@ -30,6 +30,7 @@ fn plain_assignment(fragment: &Document) -> Option<(&str, &str)> {
         return None;
     };
     if blocks.next().is_some()
+        || entry.commented
         || entry.inline_comment.is_some()
         || !fragment
             .text(block.range.start..entry.name.start)?

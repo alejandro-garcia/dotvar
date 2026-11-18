@@ -14,9 +14,7 @@ fn ids(document: &Document) -> Vec<EntryId> {
 }
 
 fn value(document: &Document, id: EntryId) -> &str {
-    document
-        .text(document.entry(id).unwrap().value.clone())
-        .unwrap()
+    document.entry_value(id).unwrap()
 }
 
 #[test]
@@ -68,6 +66,72 @@ fn all_spacing_and_quote_combinations_are_reversible_exact_patches() {
             }
         }
     }
+}
+
+#[test]
+fn toggling_a_variable_is_a_reversible_patch_to_the_selected_occurrence() {
+    let source = b"\xef\xbb\xbfKEY=old\n \texport KEY \t= \t'new # token'  # inline\r\n# eof";
+    let commented = b"\xef\xbb\xbfKEY=old\n \t# export KEY \t= \t'new # token'  # inline\r\n# eof";
+    let mut doc = Document::from_bytes(source.to_vec());
+    let entries = ids(&doc);
+    let id = entries[1];
+    assert!(doc.set_commented(id, true, 0).unwrap());
+    assert_eq!(doc.bytes(), commented);
+    assert_eq!(ids(&doc), entries);
+    assert!(doc.entry(id).unwrap().commented);
+    assert_eq!(value(&doc, id), "'new # token'");
+    assert!(!doc.set_commented(id, true, 1).unwrap());
+    assert!(doc.undo());
+    assert_eq!(doc.bytes(), source);
+    assert!(doc.redo());
+    assert_eq!(doc.bytes(), commented);
+    assert!(doc.set_commented(id, false, 3).unwrap());
+    assert_eq!(doc.bytes(), source);
+    assert_eq!(ids(&doc), entries);
+}
+
+#[test]
+fn multiline_comment_round_trip_restores_every_byte_without_a_final_newline() {
+    let source = b"NOTE='one\r\n\nOTHER=literal\n#| still literal\r\nlast' # kept";
+    let commented = b"# NOTE='one\r\n#| \n#| OTHER=literal\n#| #| still literal\r\n#| last' # kept";
+    let mut doc = Document::from_bytes(source.to_vec());
+    let id = ids(&doc)[0];
+    assert!(doc.set_commented(id, true, 0).unwrap());
+    assert_eq!(doc.bytes(), commented);
+
+    let mut reopened = Document::from_bytes(doc.bytes().to_vec());
+    assert_eq!(reopened.blocks().len(), 1);
+    assert!(reopened.entry(id).unwrap().commented);
+    assert_eq!(
+        value(&reopened, id),
+        value(&Document::from_bytes(source.to_vec()), id)
+    );
+    assert!(reopened.set_commented(id, false, 0).unwrap());
+    assert_eq!(reopened.bytes(), source);
+}
+
+#[test]
+fn existing_commented_variables_can_be_edited_without_activating_them() {
+    let source = b"# before\n#\tNAME=old # keep\n# PARTIAL=\"unclosed\n# OTHER=yes\nACTIVE=last\n";
+    let mut doc = Document::from_bytes(source.to_vec());
+    let entries = ids(&doc);
+    assert_eq!(entries.len(), 3);
+    assert!(matches!(doc.blocks()[2].kind, BlockKind::Comment));
+    let id = entries[0];
+    assert!(doc.entry(id).unwrap().commented);
+    assert!(doc.entry(entries[1]).unwrap().commented);
+    doc.rename_entry(id, "RENAMED", 0).unwrap();
+    doc.set_value(id, "\"one\nsecond\"", 1).unwrap();
+    doc.set_text_field(env_core::TextField::InlineComment(id), " edited", 2)
+        .unwrap();
+    assert_eq!(value(&doc, id), "\"one\nsecond\"");
+    assert!(doc.entry(id).unwrap().commented);
+    assert!(doc.set_commented(id, false, 3).unwrap());
+    assert_eq!(
+        doc.bytes(),
+        b"# before\nRENAMED=\"one\nsecond\" # edited\n# PARTIAL=\"unclosed\n# OTHER=yes\nACTIVE=last\n"
+    );
+    assert_eq!(ids(&doc), entries);
 }
 
 #[test]

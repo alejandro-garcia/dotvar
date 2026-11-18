@@ -1,10 +1,10 @@
 # Service icon detection
 
-Dotvar recognizes 79 services from the variable name and literal value in memory. It renders bundled SVGs without making network requests or logging values. Detection also works when values are hidden and while editing a draft.
+Dotvar recognizes 80 services and frameworks from the variable name and literal value in memory. It renders bundled SVGs without making network requests or logging values. Detection also works when values are hidden and while editing a draft.
 
 ## Precedence
 
-1. An explicit provider namespace in the key, matched case-insensitively at underscore boundaries. Prefixes such as `NEXT_PUBLIC_`, `VITE_`, and `NUXT_PUBLIC_` are supported.
+1. Key matching is case-insensitive. The `NEXT_PUBLIC_APP_` prefix identifies Next.js. Other provider namespaces match at underscore boundaries, including under wrappers such as `NEXT_PUBLIC_`, `VITE_`, and `NUXT_PUBLIC_`.
 2. A distinctive credential prefix or a known hostname in the value. Detection strips a matching outer pair of quotes for inspection and leaves the document bytes untouched.
 3. A generic database name or URL scheme such as `POSTGRES`, `postgresql://`, `mysql://`, `redis://`, or `mongodb+srv://`.
 4. The generic file icon when the available signals are ambiguous.
@@ -72,6 +72,7 @@ Namespaces can occur within longer underscore-delimited keys. Domains include th
 | Fly | `FLY_API_TOKEN`, `FLY_APP_NAME`, `FLY_REGION`, `FLY_ALLOC_ID` | `fly.dev` |
 | Netlify | `NETLIFY` | `netlify.app`, `netlify.com` |
 | Vercel | `VERCEL`, `BLOB_READ_WRITE_TOKEN` | `vercel.app`, `vercel.com`, `vercel-storage.com` |
+| Next.js | Starts with `NEXT_PUBLIC_APP_` | — |
 | GitHub | `GITHUB`, `GH_TOKEN` | `github.com`, `githubusercontent.com` |
 | GitLab | `GITLAB` | `gitlab.com` |
 | Google | `GOOGLE` | `accounts.google.com`, `oauth2.googleapis.com` |

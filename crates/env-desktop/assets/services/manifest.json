@@ -45,6 +45,17 @@
       "view_box": "0 0 256 222"
     },
     {
+      "variant": "NextJs",
+      "title": "Next.js",
+      "filename": "next_js.svg",
+      "source_url": "https://svgl.app/library/nextjs_icon_dark.svg",
+      "brand_url": "https://nextjs.org/",
+      "svgl_id": 446,
+      "retrieved_on": "2026-11-18",
+      "sha256": "efa7511b383927ea64c2e44c918bc40146c648fbc16e0389df87df5263e492eb",
+      "view_box": "0 0 180 180"
+    },
+    {
       "variant": "Upstash",
       "title": "Upstash",
       "filename": "upstash.svg",

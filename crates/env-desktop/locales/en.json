@@ -136,6 +136,8 @@
     "quote_change_hint": "%{current} · Switch to %{next}"
   },
   "variable": {
+    "comment": "Comment out",
+    "uncomment": "Uncomment",
     "add": "Add Variable",
     "add_action": "Add Variable…",
     "add_confirm": "Add",
@@ -155,6 +157,7 @@
     "edit_value": "Edit Value…",
     "edit_named_value": "Edit value of %{name}",
     "actions": "Actions for %{name}",
+    "new_actions": "Actions for the new variable",
     "copy_value": "Copy Value",
     "copy_named_value": "Copy value of %{name}",
     "copy_literal": "Copy literal value",

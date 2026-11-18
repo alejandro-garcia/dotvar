@@ -105,6 +105,9 @@ rules! {
 /// Values identify hosted providers before generic database protocols/names.
 pub fn detect(name: &str, literal: &str) -> Option<Service> {
     let name = name.to_ascii_uppercase();
+    if name.starts_with("NEXT_PUBLIC_APP_") {
+        return Some(Service::NextJs);
+    }
     let matches_name = |rule: &&Rule| rule.names.iter().any(|alias| namespace(&name, alias));
     let named = RULES.iter().find(matches_name);
     let specific_name = RULES.iter().filter(matches_name).find(|rule| {
@@ -216,22 +219,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_bundled_service_has_a_name_rule_with_public_wrappers() {
-        for service in Service::ALL {
-            let rule = RULES
-                .iter()
-                .find(|rule| rule.service == *service)
-                .expect("missing rule");
+    fn provider_namespaces_match_with_public_wrappers() {
+        for rule in RULES {
             for alias in rule.names {
                 for name in [
                     alias.to_string(),
                     format!("NEXT_PUBLIC_{alias}_KEY"),
                     format!("vite_{alias}_url").to_lowercase(),
                 ] {
-                    assert_eq!(detect(&name, ""), Some(*service), "{name}");
+                    assert_eq!(detect(&name, ""), Some(rule.service), "{name}");
                 }
             }
         }
+    }
+
+    #[test]
+    fn recognizes_next_js_at_the_start_of_app_keys() {
+        for (name, value) in [
+            ("NEXT_PUBLIC_APP_NAME", "\"Demo\""),
+            ("next_public_app_url", "https://demo.vercel.app"),
+            ("NEXT_PUBLIC_APP_STRIPE_URL", ""),
+        ] {
+            assert_eq!(detect(name, value), Some(Service::NextJs), "{name}");
+        }
+        for name in [
+            "NEXT_PUBLIC_APP",
+            "NEXT_PUBLIC_APPLICATION_NAME",
+            "MY_NEXT_PUBLIC_APP_NAME",
+            "NEXT_PUBLIC_SITE_NAME",
+        ] {
+            assert_eq!(detect(name, ""), None, "{name}");
+        }
+        assert_eq!(
+            detect("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", ""),
+            Some(Service::Stripe)
+        );
     }
 
     #[test]

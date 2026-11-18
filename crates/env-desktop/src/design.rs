@@ -45,12 +45,13 @@ pub const MONO_FONT: &str = "SF Mono";
 pub const UI_FONT: &str = ".AppleSystemUIFont";
 
 /// The same frame surrounds a value in both preview and edit mode.
-pub fn variable_field() -> Div {
+pub fn variable_field(commented: bool) -> Div {
     div()
         .relative()
         .w_full()
         .min_w_0()
         .min_h(px(FIELD_HEIGHT))
+        .opacity(if commented { 0.72 } else { 1. })
         .bg(rgb(WINDOW_BG))
         .border_1()
         .border_color(rgb(FIELD_BORDER))

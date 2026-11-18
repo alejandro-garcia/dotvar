@@ -310,8 +310,7 @@ impl DocumentSession {
         if let Some(draft) = self.drafts.get(&id) {
             return Some(&draft.text);
         }
-        let entry = self.document.entry(id)?;
-        self.document.text(entry.value.clone())
+        self.document.entry_value(id)
     }
 
     /// Shared by the preview and editor so focusing a field never reveals syntax.
@@ -361,13 +360,13 @@ impl DocumentSession {
                 error: EditError::ReadOnly,
             });
         }
-        let entry = self.document.entry(id).ok_or(SessionError::Edit {
+        let original = self.document.entry_value(id).ok_or(SessionError::Edit {
             entry: id,
             error: EditError::MissingEntry(id),
         })?;
         let token = style.wrap(&content);
         let matches_style = QuoteStyle::from_token(&token) == style;
-        if matches_style && self.document.text(entry.value.clone()) == Some(token.as_str()) {
+        if matches_style && original == token {
             self.cancel_draft(id);
             return Ok(());
         }
@@ -406,15 +405,15 @@ impl DocumentSession {
                 error: EditError::ReadOnly,
             });
         }
-        let entry = self.document.entry(id).ok_or(SessionError::Edit {
-            entry: id,
-            error: EditError::MissingEntry(id),
-        })?;
         if self.value(id) == Some(text.as_str()) {
             return Ok(());
         }
+        let original = self.document.entry_value(id).ok_or(SessionError::Edit {
+            entry: id,
+            error: EditError::MissingEntry(id),
+        })?;
         self.draft_epoch = self.draft_epoch.wrapping_add(1);
-        if self.document.text(entry.value.clone()) == Some(text.as_str()) {
+        if original == text {
             self.drafts.remove(&id);
         } else {
             let error = self.document.validate_value(id, &text).err();
@@ -544,6 +543,15 @@ impl DocumentSession {
         self.confirm_entry(id)?;
         self.document
             .rename_entry(id, name, self.document.revision())
+            .map(|_| ())
+            .map_err(|error| SessionError::Edit { entry: id, error })
+    }
+
+    pub fn set_commented(&mut self, id: EntryId, commented: bool) -> Result<(), SessionError> {
+        self.confirm_text_fields()?;
+        self.confirm_entry(id)?;
+        self.document
+            .set_commented(id, commented, self.document.revision())
             .map(|_| ())
             .map_err(|error| SessionError::Edit { entry: id, error })
     }
@@ -716,6 +724,35 @@ mod tests {
         std::fs::write(&path, source).unwrap();
         let session = DocumentSession::new(storage::open(path).unwrap());
         (dir, session)
+    }
+
+    #[test]
+    fn commenting_commits_the_value_draft_and_saves_a_reopenable_assignment() {
+        let (dir, mut session, id, _) = session();
+        let path = dir.path().join(".env");
+        session.set_draft(id, "'pending'".into()).unwrap();
+        session.set_commented(id, true).unwrap();
+        assert!(session.is_dirty());
+        assert_eq!(session.copy_token(id).unwrap(), "'pending'");
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"# before\r\nA=one # tail\r\nB=two\r\n"
+        );
+        let request = session.prepare_save(false).unwrap().unwrap();
+        storage::save(&request.baseline, &request.bytes).unwrap();
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"# before\r\n# A='pending' # tail\r\nB=two\r\n"
+        );
+
+        let mut reopened = DocumentSession::new(storage::open(path).unwrap());
+        assert!(reopened.document.entry(id).unwrap().commented);
+        assert_eq!(reopened.value_content(id), Some("pending"));
+        reopened.set_commented(id, false).unwrap();
+        assert_eq!(
+            reopened.document.bytes(),
+            b"# before\r\nA='pending' # tail\r\nB=two\r\n"
+        );
     }
 
     #[test]

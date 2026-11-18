@@ -1,4 +1,8 @@
 use crate::{Assignment, Block, BlockKind, Diagnostic, EntryId};
+use std::ops::Range;
+
+// Distinguish multiline value continuations from neighboring standalone comments.
+pub(crate) const COMMENT_CONTINUATION: &[u8] = b"#| ";
 
 pub(crate) fn parse(bytes: &[u8], mut offset: usize) -> Vec<Block> {
     let mut blocks = Vec::new();
@@ -9,7 +13,7 @@ pub(crate) fn parse(bytes: &[u8], mut offset: usize) -> Vec<Block> {
         let (kind, end) = if first == content_end {
             (BlockKind::Blank, line_end)
         } else if bytes[first] == b'#' {
-            (BlockKind::Comment, line_end)
+            parse_comment(bytes, first + 1, content_end, line_end, next_id)
         } else {
             parse_assignment(bytes, first, content_end, line_end, next_id)
         };
@@ -23,6 +27,64 @@ pub(crate) fn parse(bytes: &[u8], mut offset: usize) -> Vec<Block> {
         offset = end;
     }
     blocks
+}
+
+fn parse_comment(
+    bytes: &[u8],
+    after_marker: usize,
+    content_end: usize,
+    line_end: usize,
+    id: u64,
+) -> (BlockKind, usize) {
+    let start = skip_space(bytes, after_marker, content_end);
+    if start == content_end || !is_name_start(bytes[start]) {
+        return (BlockKind::Comment, line_end);
+    }
+    match parse_assignment(&bytes[..line_end], start, content_end, line_end, id).0 {
+        BlockKind::Assignment(mut entry) => {
+            entry.commented = true;
+            return (BlockKind::Assignment(entry), line_end);
+        }
+        BlockKind::Opaque(Diagnostic::UnclosedQuote)
+            if bytes[line_end..].starts_with(COMMENT_CONTINUATION) => {}
+        _ => return (BlockKind::Comment, line_end),
+    }
+
+    let mut source = bytes[start..line_end].to_vec();
+    let mut starts = Vec::new();
+    let mut cursor = line_end;
+    while bytes[cursor..].starts_with(COMMENT_CONTINUATION) {
+        starts.push(source.len());
+        let payload = cursor + COMMENT_CONTINUATION.len();
+        (_, cursor) = line_bounds(bytes, payload);
+        source.extend_from_slice(&bytes[payload..cursor]);
+    }
+    let (kind, end) = parse_assignment(&source, 0, content_end - start, line_end - start, id);
+    let BlockKind::Assignment(mut entry) = kind else {
+        return (BlockKind::Comment, line_end);
+    };
+    let original_offset = |offset| {
+        start
+            + offset
+            + starts.partition_point(|line_start| *line_start <= offset)
+                * COMMENT_CONTINUATION.len()
+    };
+    let original_range =
+        |range: Range<usize>| original_offset(range.start)..original_offset(range.end);
+    // The end is exclusive, so a marker on the next line is outside this block.
+    let original_end = start
+        + end
+        + starts.partition_point(|line_start| *line_start < end) * COMMENT_CONTINUATION.len();
+    entry.commented = true;
+    entry.uncommented_value = Some(
+        std::str::from_utf8(&source[entry.value.clone()])
+            .expect("dotenv source was validated as UTF-8")
+            .to_owned(),
+    );
+    entry.name = original_range(entry.name);
+    entry.value = original_range(entry.value);
+    entry.inline_comment = entry.inline_comment.map(original_range);
+    (BlockKind::Assignment(entry), original_end)
 }
 
 fn line_bounds(bytes: &[u8], start: usize) -> (usize, usize) {
@@ -246,9 +308,11 @@ fn parse_assignment(
     (
         BlockKind::Assignment(Assignment {
             id: EntryId(id),
+            commented: false,
             name,
             value: value_start..value_end,
             inline_comment,
+            uncommented_value: None,
         }),
         end,
     )

@@ -15,11 +15,22 @@ pub enum TextField {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Assignment {
     pub id: EntryId,
+    pub commented: bool,
     pub name: Range<usize>,
-    /// The literal token, including outer quotes when present.
+    /// The source span, including outer quotes and any continuation markers.
     pub value: Range<usize>,
     /// Starts at `#`; whitespace separating the comment remains outside the token.
     pub inline_comment: Option<Range<usize>>,
+    pub(crate) uncommented_value: Option<String>,
+}
+
+impl Assignment {
+    pub(crate) fn value_bytes<'a>(&'a self, bytes: &'a [u8]) -> Option<&'a [u8]> {
+        if let Some(value) = &self.uncommented_value {
+            return Some(value.as_bytes());
+        }
+        bytes.get(self.value.clone())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -140,5 +151,10 @@ impl Document {
             BlockKind::Assignment(entry) if entry.id == id => Some(entry),
             _ => None,
         })
+    }
+
+    /// Returns the literal token with any comment continuation markers removed.
+    pub fn entry_value(&self, id: EntryId) -> Option<&str> {
+        std::str::from_utf8(self.entry(id)?.value_bytes(&self.bytes)?).ok()
     }
 }

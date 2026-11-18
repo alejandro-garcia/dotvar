@@ -605,6 +605,29 @@ impl AppWindow {
         cx.notify();
     }
 
+    pub(super) fn set_variable_commented(
+        &mut self,
+        tab_id: u64,
+        entry: EntryId,
+        commented: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.finish_editor(false, window, cx);
+        let Some(session) = self.tab_mut(tab_id).and_then(|t| t.content.as_mut()) else {
+            return;
+        };
+        match session.set_commented(entry, commented) {
+            Ok(()) => {
+                self.error = None;
+                self.notice = None;
+                self.needs_root_focus = true;
+            }
+            Err(error) => self.show_session_error(error, window, cx),
+        }
+        cx.notify();
+    }
+
     pub(super) fn remove_variable(
         &mut self,
         tab_id: u64,

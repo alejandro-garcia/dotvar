@@ -37,6 +37,7 @@ service_logos! {
     BetterAuth => ("Better Auth", "better_auth.svg"),
     Resend => ("Resend", "resend.svg"),
     Vercel => ("Vercel", "vercel.svg"),
+    NextJs => ("Next.js", "next_js.svg"),
     Upstash => ("Upstash", "upstash.svg"),
     Supabase => ("Supabase", "supabase.svg"),
     Neon => ("Neon", "neon.svg"),

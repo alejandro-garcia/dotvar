@@ -41,6 +41,14 @@
       "viewBox": "-12.996168 -29.996168 281.992337 281.992337"
     },
     {
+      "service": "Next.js",
+      "file": "next_js.svg",
+      "source_url": "https://svgl.app/library/nextjs_icon_dark.svg",
+      "source_sha256": "efa7511b383927ea64c2e44c918bc40146c648fbc16e0389df87df5263e492eb",
+      "monochrome_sha256": "0ab3779f39c6ff6cf274a4c8cd37ce2713c332a886868e2b9566cb1b67c08e93",
+      "viewBox": "-9.310345 -9.310345 198.620690 198.620690"
+    },
+    {
       "service": "Upstash",
       "file": "upstash.svg",
       "source_url": "https://svgl.app/library/upstash.svg",

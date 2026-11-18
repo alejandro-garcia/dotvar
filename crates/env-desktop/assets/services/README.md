@@ -10,6 +10,7 @@ Dotvar embeds [monochrome derivatives](monochrome/README.md) and applies the col
 | Better Auth | [better_auth.svg](better_auth.svg) | [SVGL](https://svgl.app/library/better-auth_dark.svg) |
 | Resend | [resend.svg](resend.svg) | [SVGL](https://svgl.app/library/resend-icon-white.svg) |
 | Vercel | [vercel.svg](vercel.svg) | [SVGL](https://svgl.app/library/vercel_dark.svg) |
+| Next.js | [next_js.svg](next_js.svg) | [SVGL](https://svgl.app/library/nextjs_icon_dark.svg) |
 | Upstash | [upstash.svg](upstash.svg) | [SVGL](https://svgl.app/library/upstash.svg) |
 | Supabase | [supabase.svg](supabase.svg) | [SVGL](https://svgl.app/library/supabase.svg) |
 | Neon | [neon.svg](neon.svg) | [SVGL](https://svgl.app/library/neon.svg) |

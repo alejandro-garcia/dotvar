@@ -8,13 +8,21 @@ Dotvar is a blazing-fast, privacy-first `.env` editor for macOS. Keep your proje
 
 ## Why Dotvar?
 
-- ⚡ **Find any key fast.** Search by variable name and scroll smoothly through long files.
-- 🔒 **Keep secrets local.** Dotvar edits files on your Mac, hides values by default, and recognizes providers offline.
-- 📂 **Switch between environments.** Open a folder and Dotvar finds `.env`, `.env.*`, and `*.env` files at its root. Pick up where you left off with remembered projects and tabs.
-- ✏️ **Edit in place.** Change names, values, and comments, paste new assignments, reorder rows, and undo or redo edits.
-- 🎨 **Spot services at a glance.** Provider icons identify common services. Environment colors distinguish local, staging, and production files. [Service icon guide](docs/service-icons.md)
-- 📋 **Copy just what you need.** Copy one value or the entire working file, including valid unsaved edits.
-- 🔄 **Catch changes from other tools.** Dotvar reloads files as they change on disk and flags conflicts when you have unsaved edits, so you can resolve the conflict or save a separate copy.
+- ⚡ **Skip the full IDE.** Dotvar used 93% less memory at idle than VS Code in our [benchmark](docs/resource-benchmark.md).
+- 📂 **Go straight to the variable.** Open a folder, pick an environment, and search by name.
+- 🔒 **Keep secrets offscreen.** Values are hidden by default. Reveal just the one you need.
+- 📴 **Work entirely offline.** Dotvar reads and edits your secrets locally on your Mac.
+- 📝 **Keep your file exactly as written.** Edit one value and everything else stays byte-for-byte identical.
+
+## Features
+
+- ✍️ Edit unquoted, single-quoted, or double-quoted values, including quoted multiline values.
+- 📄 Preserve comments, whitespace, line endings, and unfamiliar syntax.
+- 📂 Find and switch between `.env`, `.env.*`, and `*.env` files.
+- 🎨 Spot environments by color and services by [icon](docs/service-icons.md).
+- ↩️ Paste assignments, reorder rows, and undo or redo edits.
+- 📋 Copy one value or the file, including valid unsaved edits.
+- 🔄 Auto-reload external changes and flag conflicts with unsaved edits.
 
 ## Resource usage vs. VS Code
 
