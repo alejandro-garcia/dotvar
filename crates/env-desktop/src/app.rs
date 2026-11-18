@@ -33,10 +33,14 @@ actions!(
         NextTab,
         PreviousTab,
         QaResize,
-        NextValue,
-        PreviousValue
+        NextField,
+        PreviousField
     ]
 );
+
+#[derive(Clone, Action, PartialEq, Eq)]
+#[action(namespace = dotvar, no_json)]
+pub(crate) struct SelectTabAt(pub usize);
 
 /// Native entry point. An optional path is explicit user input, never a fixture default.
 pub fn run(initial_path: Option<PathBuf>) {
@@ -68,9 +72,34 @@ pub fn run(initial_path: Option<PathBuf>) {
                 KeyBinding::new("cmd-shift-g", FindPrevious, None),
                 KeyBinding::new("ctrl-tab", NextTab, None),
                 KeyBinding::new("ctrl-shift-tab", PreviousTab, None),
-                KeyBinding::new("tab", NextValue, Some("EnvValue > Input")),
-                KeyBinding::new("shift-tab", PreviousValue, Some("EnvValue > Input")),
+                KeyBinding::new("tab", NextField, Some("EnvDocumentRow")),
+                KeyBinding::new("shift-tab", PreviousField, Some("EnvDocumentRow")),
+                KeyBinding::new("tab", NextField, Some("EnvDocumentRow > Input")),
+                KeyBinding::new("shift-tab", PreviousField, Some("EnvDocumentRow > Input")),
+                KeyBinding::new(
+                    "space",
+                    gpui_kit::base::actions::Confirm { secondary: false },
+                    Some("VariableMenu > PopupMenu"),
+                ),
+                KeyBinding::new(
+                    "tab",
+                    gpui_kit::base::actions::SelectDown,
+                    Some("VariableMenu > PopupMenu"),
+                ),
+                KeyBinding::new(
+                    "shift-tab",
+                    gpui_kit::base::actions::SelectUp,
+                    Some("VariableMenu > PopupMenu"),
+                ),
             ]);
+            cx.bind_keys(
+                [
+                    "cmd-1", "cmd-2", "cmd-3", "cmd-4", "cmd-5", "cmd-6", "cmd-7", "cmd-8", "cmd-9",
+                ]
+                .into_iter()
+                .enumerate()
+                .map(|(index, key)| KeyBinding::new(key, SelectTabAt(index), None)),
+            );
             if crate::config::app_env("QA_FLOATING").as_deref() == Some(std::ffi::OsStr::new("1")) {
                 cx.bind_keys([KeyBinding::new("cmd-alt-9", QaResize, None)]);
             }

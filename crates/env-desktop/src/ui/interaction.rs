@@ -8,6 +8,18 @@ pub(super) struct SearchBox {
     _subscription: Subscription,
 }
 
+pub(super) fn toggle_all_value_visibility(
+    revealed: &mut bool,
+    exceptions: &mut HashSet<EntryId>,
+    pending_revealed: Option<&mut bool>,
+) {
+    *revealed = !*revealed;
+    exceptions.clear();
+    if let Some(pending_revealed) = pending_revealed {
+        *pending_revealed = *revealed;
+    }
+}
+
 impl AppWindow {
     pub(super) fn copy_entry(
         &mut self,
@@ -255,7 +267,7 @@ impl AppWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.suspend_editor(window, cx);
+        self.finish_editor(false, window, cx);
         if let Some(tab) = self.tab_mut(tab) {
             if !tab.exceptions.remove(&id) {
                 tab.exceptions.insert(id);
@@ -265,10 +277,16 @@ impl AppWindow {
         cx.notify();
     }
     pub(super) fn toggle_all(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.suspend_editor(window, cx);
+        self.finish_editor(false, window, cx);
         if let Some(tab) = self.active_tab_mut() {
-            tab.revealed = !tab.revealed;
-            tab.exceptions.clear();
+            toggle_all_value_visibility(
+                &mut tab.revealed,
+                &mut tab.exceptions,
+                tab.new_variable.as_mut().map(|row| &mut row.revealed),
+            );
+            if let Some(row) = &tab.new_variable {
+                row.redirect_hidden_value_focus(window, cx);
+            }
             tab.list.remeasure();
         }
         cx.notify();
@@ -282,10 +300,5 @@ impl AppWindow {
             }
             self.needs_root_focus = true;
         }
-    }
-    pub(super) fn suspend_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.detach_editor();
-        self.focus.focus(window, cx);
-        self.needs_root_focus = false;
     }
 }

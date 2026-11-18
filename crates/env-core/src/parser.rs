@@ -143,6 +143,19 @@ fn unsupported_line(
     content_end: usize,
     line_end: usize,
 ) -> (BlockKind, usize) {
+    opaque(
+        Diagnostic::UnsupportedSyntax,
+        unsupported_line_end(bytes, start, content_end, line_end, false),
+    )
+}
+
+fn unsupported_line_end(
+    bytes: &[u8],
+    start: usize,
+    content_end: usize,
+    line_end: usize,
+    recognize_trailing_comment: bool,
+) -> usize {
     let mut pos = start;
     let mut quote = None;
     let mut parentheses = 0usize;
@@ -157,7 +170,7 @@ fn unsupported_line(
             Some(delimiter) => {
                 if byte == b'\\' {
                     if pos + 1 >= content_end {
-                        return opaque(Diagnostic::UnsupportedSyntax, bytes.len());
+                        return bytes.len();
                     }
                     pos += 1;
                 } else if byte == delimiter {
@@ -169,27 +182,30 @@ fn unsupported_line(
                 b'(' => parentheses += 1,
                 b')' => parentheses = parentheses.saturating_sub(1),
                 b'<' if bytes.get(pos + 1) == Some(&b'<') => {
-                    return opaque(Diagnostic::UnsupportedSyntax, bytes.len());
+                    return bytes.len();
                 }
                 b'\\' => {
                     if pos + 1 >= content_end {
-                        return opaque(Diagnostic::UnsupportedSyntax, bytes.len());
+                        return bytes.len();
                     }
                     pos += 1;
+                }
+                _ if recognize_trailing_comment
+                    && is_space(byte)
+                    && bytes.get(pos + 1) == Some(&b'#') =>
+                {
+                    break;
                 }
                 _ => {}
             },
         }
         pos += 1;
     }
-    opaque(
-        Diagnostic::UnsupportedSyntax,
-        if quote.is_some() || parentheses > 0 {
-            bytes.len()
-        } else {
-            line_end
-        },
-    )
+    if quote.is_some() || parentheses > 0 {
+        bytes.len()
+    } else {
+        line_end
+    }
 }
 
 fn parse_assignment(
@@ -247,11 +263,12 @@ fn parse_assignment(
             }
             let value_end = pos + 1;
             let (tail_end, end) = line_bounds(bytes, value_end);
-            if unsupported {
-                return opaque(Diagnostic::UnsupportedSyntax, end);
-            }
             pos = skip_space(bytes, value_end, tail_end);
             if pos < tail_end && bytes[pos] != b'#' {
+                let end = unsupported_line_end(bytes, value_end, tail_end, end, true);
+                return opaque(Diagnostic::UnsupportedSyntax, end);
+            }
+            if unsupported {
                 return opaque(Diagnostic::UnsupportedSyntax, end);
             }
             if pos < tail_end && pos == value_end {

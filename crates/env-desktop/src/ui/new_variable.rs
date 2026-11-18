@@ -45,6 +45,10 @@ fn plain_assignment(fragment: &Document) -> Option<(&str, &str)> {
     ))
 }
 
+fn focus_value(value: bool, revealed: bool) -> bool {
+    value && revealed
+}
+
 impl AppWindow {
     pub(super) fn begin_new_variable(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.dialog.is_some() || self.closing {
@@ -119,11 +123,11 @@ impl AppWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let Some(tab) = self.tab_mut(tab_id) else {
+        let Some(tab) = self.tab(tab_id) else {
             return;
         };
         let Some(session) = &tab.content else { return };
-        let Some(view) = &mut tab.new_variable else {
+        let Some(view) = &tab.new_variable else {
             return;
         };
         let index = session.document.blocks().len();
@@ -137,13 +141,29 @@ impl AppWindow {
                 offset_in_item: px(0.),
             });
         }
-        if value {
-            view.revealed = true;
+        if focus_value(value, view.revealed) {
             view.value.update(cx, |state, cx| state.focus(window, cx));
         } else {
             view.name.update(cx, |state, cx| state.focus(window, cx));
         }
         cx.notify();
+    }
+
+    pub(super) fn reveal_new_variable(
+        &mut self,
+        tab_id: u64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(tab) = self.tab_mut(tab_id) else {
+            return;
+        };
+        let Some(row) = &mut tab.new_variable else {
+            return;
+        };
+        row.revealed = true;
+        tab.list.remeasure();
+        self.focus_new_variable(tab_id, true, window, cx);
     }
 
     pub(super) fn update_new_variable(
@@ -298,35 +318,14 @@ impl AppWindow {
         let Some(row) = &mut tab.new_variable else {
             return;
         };
-        row.revealed = !row.revealed;
-        if !row.revealed && row.value.read(cx).focus_handle(cx).is_focused(window) {
-            row.name.update(cx, |state, cx| state.focus(window, cx));
+        if !row.revealed {
+            self.reveal_new_variable(tab_id, window, cx);
+            return;
         }
+        row.revealed = false;
+        row.redirect_hidden_value_focus(window, cx);
         tab.list.remeasure();
         cx.notify();
-    }
-
-    pub(super) fn navigate_new_variable(
-        &mut self,
-        tab_id: u64,
-        backwards: bool,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let Some(row) = self.tab(tab_id).and_then(|tab| tab.new_variable.as_ref()) else {
-            return;
-        };
-        if row.is_composing(window, cx) {
-            cx.propagate();
-        } else if !backwards && row.name.read(cx).focus_handle(cx).is_focused(window) {
-            self.focus_new_variable(tab_id, true, window, cx);
-        } else if backwards && row.value.read(cx).focus_handle(cx).is_focused(window) {
-            self.focus_new_variable(tab_id, false, window, cx);
-        } else if backwards {
-            window.focus_prev(cx);
-        } else {
-            window.focus_next(cx);
-        }
     }
 
     pub(super) fn cancel_new_variable(
@@ -356,7 +355,13 @@ impl AppWindow {
 }
 
 impl NewVariableRow {
-    fn is_composing(&self, window: &mut Window, cx: &mut App) -> bool {
+    pub(super) fn redirect_hidden_value_focus(&self, window: &mut Window, cx: &mut App) {
+        if !self.revealed && self.value.read(cx).focus_handle(cx).is_focused(window) {
+            self.name.update(cx, |state, cx| state.focus(window, cx));
+        }
+    }
+
+    pub(super) fn is_composing(&self, window: &mut Window, cx: &mut App) -> bool {
         if self.name.read(cx).focus_handle(cx).is_focused(window) {
             self.name.update(cx, |state, cx| {
                 state.marked_text_range(window, cx).is_some()
@@ -367,5 +372,33 @@ impl NewVariableRow {
                     state.marked_text_range(window, cx).is_some()
                 })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Document, QuoteStyle, focus_value, plain_assignment, token_content};
+
+    #[test]
+    fn new_value_visibility_paste_into_hidden_name_keeps_value_masked() {
+        let fragment = Document::from_bytes(b"SYNTHETIC_KEY='synthetic value'".to_vec());
+        let (name, token) = plain_assignment(&fragment).unwrap();
+        assert_eq!(name, "SYNTHETIC_KEY");
+        assert_eq!(token_content(token), "synthetic value");
+        assert_eq!(QuoteStyle::from_token(token), QuoteStyle::Single);
+        assert!(
+            !focus_value(true, false),
+            "a masked row must focus its name"
+        );
+    }
+
+    #[test]
+    fn new_value_visibility_paste_into_revealed_name_focuses_value() {
+        let fragment = Document::from_bytes(b"SYNTHETIC_KEY=synthetic".to_vec());
+        assert_eq!(
+            plain_assignment(&fragment),
+            Some(("SYNTHETIC_KEY", "synthetic"))
+        );
+        assert!(focus_value(true, true));
     }
 }

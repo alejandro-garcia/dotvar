@@ -6,9 +6,26 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-18
+
+### Added
+
+- Drag tabs to reorder them within a project and use `⌘1`–`⌘9` to switch tabs by position.
+- Edit commented-out variables, including multiline values, and comment or uncomment assignments from the variable menu.
+- Open `.env` files from Finder or drag them onto Dotvar.
+- Recognize `NEXT_PUBLIC_APP_` variables with the Next.js service icon.
+
 ### Changed
 
 - The macOS disk image opens with a Dotvar-themed drag-to-install window.
+- Use `Tab` and `Shift+Tab` to navigate document fields and variable actions with the keyboard.
+
+### Fixed
+
+- Preserve open drafts when creating an `.env` file at a path already open in Dotvar.
+- Keep a pending variable's value masked when pasting into its name field and include it in Show All and Hide All.
+- Reject a pending variable rename if an external reload has replaced the document.
+- Preserve ambiguous continuations after quoted values together as opaque text.
 
 ## [0.1.0] - 2026-11-17
 
@@ -22,5 +39,6 @@ This file tracks notable changes to Dotvar. It follows
 - English and Spanish interface options, with a setting to follow the system language.
 - Signed and notarized macOS installer for Apple Silicon, with a SHA-256 checksum.
 
-[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.1.0...master
+[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.2.0...master
+[0.2.0]: https://github.com/nicoandrade/dotvar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nicoandrade/dotvar/releases/tag/v0.1.0

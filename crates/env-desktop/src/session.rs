@@ -3,7 +3,7 @@
 use crate::i18n::{edit_error_message, tr};
 use crate::storage::FileBaseline;
 use env_core::{BlockKind, Document, EditError, EntryId, TextField};
-use std::{collections::BTreeMap, fmt};
+use std::{collections::BTreeMap, fmt, sync::Arc};
 
 pub struct Draft {
     pub text: String,
@@ -100,6 +100,7 @@ pub enum SessionError {
     NewVariable(EditError),
     Reorder(EditError),
     Busy,
+    StaleRenameTarget,
     StaleSave,
     UnsupportedEncoding,
 }
@@ -112,6 +113,7 @@ impl fmt::Display for SessionError {
             | Self::NewVariable(error)
             | Self::Reorder(error) => edit_error_message(error),
             Self::Busy => tr!("session.busy"),
+            Self::StaleRenameTarget => tr!("edit_error.stale_revision"),
             Self::StaleSave => tr!("session.stale_save"),
             Self::UnsupportedEncoding => tr!("session.copy_unsupported_encoding"),
         };
@@ -140,8 +142,15 @@ pub enum ExternalUpdate {
     Busy,
 }
 
+pub struct RenameTarget {
+    document_identity: Arc<()>,
+    entry: EntryId,
+}
+
 pub struct DocumentSession {
     pub document: Document,
+    // Replace this marker whenever a fresh parse can reuse occurrence IDs.
+    document_identity: Arc<()>,
     pub baseline: FileBaseline,
     drafts: BTreeMap<EntryId, Draft>,
     text_drafts: BTreeMap<TextField, Draft>,
@@ -155,6 +164,7 @@ impl DocumentSession {
     pub fn new(baseline: FileBaseline) -> Self {
         Self {
             document: Document::from_bytes(baseline.bytes.clone()),
+            document_identity: Arc::new(()),
             baseline,
             drafts: BTreeMap::new(),
             text_drafts: BTreeMap::new(),
@@ -210,6 +220,7 @@ impl DocumentSession {
             return ExternalUpdate::Conflict;
         }
         self.document = Document::from_bytes(baseline.bytes.clone());
+        self.document_identity = Arc::new(());
         self.baseline = baseline;
         self.drafts.clear();
         self.text_drafts.clear();
@@ -536,6 +547,25 @@ impl DocumentSession {
         self.document
             .move_block(from, to, self.document.revision())
             .map_err(SessionError::Reorder)
+    }
+
+    pub fn capture_rename_target(&self, entry: EntryId) -> RenameTarget {
+        RenameTarget {
+            document_identity: self.document_identity.clone(),
+            entry,
+        }
+    }
+
+    pub fn rename_captured(
+        &mut self,
+        target: &RenameTarget,
+        name: &str,
+    ) -> Result<EntryId, SessionError> {
+        if !Arc::ptr_eq(&self.document_identity, &target.document_identity) {
+            return Err(SessionError::StaleRenameTarget);
+        }
+        self.rename(target.entry, name)?;
+        Ok(target.entry)
     }
 
     pub fn rename(&mut self, id: EntryId, name: &str) -> Result<(), SessionError> {
@@ -1423,6 +1453,113 @@ mod tests {
         assert!(!s.is_dirty());
         assert!(!s.document.can_undo());
         assert!(!s.document.can_redo());
+    }
+
+    fn assert_rename_rejected_after_reload(original: &[u8], external: &[u8]) {
+        let (_dir, mut s) = quoted_session(original);
+        let target = s.capture_rename_target(s.document.entry(EntryId(2)).unwrap().id);
+        assert_eq!(s.document.revision(), 0);
+        std::fs::write(&s.baseline.chosen_path, external).unwrap();
+        let disk = storage::open(s.baseline.chosen_path.clone()).unwrap();
+        assert_eq!(s.reconcile_external(disk), ExternalUpdate::Reloaded);
+        let revision = s.document.revision();
+        assert_eq!(revision, 0);
+
+        let result = s.rename_captured(&target, "RENAMED");
+
+        assert_eq!(s.document.bytes(), external);
+        assert_eq!(s.document.revision(), revision);
+        assert!(!s.document.can_undo());
+        assert!(!s.document.can_redo());
+        assert!(matches!(result, Err(SessionError::StaleRenameTarget)));
+    }
+
+    #[test]
+    fn rename_after_reload_rejects_reused_id() {
+        assert_rename_rejected_after_reload(
+            b"A=first\nB=second\n",
+            b"NEW=inserted\nA=first\nB=second\n",
+        );
+    }
+
+    #[test]
+    fn rename_after_reload_rejects_reused_id_with_duplicate_names() {
+        assert_rename_rejected_after_reload(
+            b"A=first\nA=second\n",
+            b"NEW=inserted\nA=first\nA=second\n",
+        );
+    }
+
+    #[test]
+    fn rename_after_reload_allows_unchanged_document() {
+        let (_dir, mut s) = quoted_session(b"A=first\nA=second\n");
+        let second = EntryId(2);
+        let target = s.capture_rename_target(second);
+
+        assert_eq!(s.rename_captured(&target, "RENAMED").unwrap(), second);
+        assert_eq!(s.document.bytes(), b"A=first\nRENAMED=second\n");
+    }
+
+    #[test]
+    fn rename_after_reload_allows_identical_byte_rebase() {
+        let (dir, mut s) = quoted_session(b"A=first\nB=second\n");
+        let second = EntryId(2);
+        let target = s.capture_rename_target(second);
+        let replacement = dir.path().join("replacement");
+        std::fs::write(&replacement, &s.baseline.bytes).unwrap();
+        std::fs::rename(replacement, &s.baseline.chosen_path).unwrap();
+        let disk = storage::open(s.baseline.chosen_path.clone()).unwrap();
+        assert!(!disk.same_reference(&s.baseline));
+        assert_eq!(s.reconcile_external(disk), ExternalUpdate::Unchanged);
+
+        assert_eq!(s.rename_captured(&target, "RENAMED").unwrap(), second);
+        assert_eq!(s.document.bytes(), b"A=first\nRENAMED=second\n");
+    }
+
+    #[test]
+    fn rename_after_reload_allows_edits_and_save_in_same_document() {
+        let (_dir, mut s, first, second) = session();
+        let target = s.capture_rename_target(second);
+        s.set_draft(first, "changed".into()).unwrap();
+        let request = s.prepare_save(false).unwrap().unwrap();
+        let disk = storage::save(&request.baseline, &request.bytes).unwrap();
+        s.complete_save(&request, disk).unwrap();
+
+        assert_eq!(s.rename_captured(&target, "RENAMED").unwrap(), second);
+        assert_eq!(
+            s.document.bytes(),
+            b"# before\r\nA=changed # tail\r\nRENAMED=two\r\n"
+        );
+    }
+
+    #[test]
+    fn rename_after_reload_rejects_new_session_before_confirming_drafts() {
+        let (_dir, original, _, second) = session();
+        let target = original.capture_rename_target(second);
+        let bytes = original.document.bytes();
+        let mut reopened = DocumentSession::new(original.baseline.clone());
+        assert_eq!(reopened.document.revision(), original.document.revision());
+        assert_eq!(reopened.document.entry(second).unwrap().id, second);
+        let comment = TextField::Comment(0);
+        reopened
+            .set_text_draft(comment, " pending comment".into())
+            .unwrap();
+        reopened.set_draft(second, "pending value".into()).unwrap();
+        let revision = reopened.work_revision();
+
+        assert!(matches!(
+            reopened.rename_captured(&target, "RENAMED"),
+            Err(SessionError::StaleRenameTarget)
+        ));
+        assert_eq!(reopened.document.bytes(), bytes);
+        assert_eq!(reopened.work_revision(), revision);
+        assert!(!reopened.document.can_undo());
+        assert!(!reopened.document.can_redo());
+        assert_eq!(
+            reopened.text_draft(comment).unwrap().text,
+            " pending comment"
+        );
+        assert_eq!(reopened.draft(second).unwrap().text, "pending value");
     }
 
     #[test]

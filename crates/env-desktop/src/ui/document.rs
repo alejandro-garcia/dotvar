@@ -142,7 +142,6 @@ fn quote_button(id: impl Into<ElementId>, quote_style: QuoteStyle, commented: bo
     let (width, height) = icon.dimensions();
     Button::new(id)
         .ghost()
-        .tab_stop(false)
         .size(px(design::QUOTE_BUTTON_SIZE))
         .p_0()
         .border_0()
@@ -311,21 +310,26 @@ impl AppWindow {
         };
         let owner = cx.weak_entity();
         let discard = owner.clone();
-        let actions = Button::new(("new-variable-actions", id))
-            .ghost()
-            .w(px(16.))
-            .h(px(16.))
-            .p_0()
-            .border_0()
-            .accessibility_label(tr!("variable.new_actions"))
-            .tooltip(tr!("variable.new_actions"))
-            .child(design::asset(Asset::GenericNeutral))
-            .dropdown_menu(move |menu, _, _| {
+        let actions = reorder::click_menu(
+            format!("new-variable-menu-{id}"),
+            Button::new(("new-variable-actions", id))
+                .ghost()
+                .w(px(16.))
+                .h(px(16.))
+                .p_0()
+                .border_0()
+                .accessibility_label(tr!("variable.new_actions"))
+                .tooltip(tr!("variable.new_actions"))
+                .child(design::asset(Asset::GenericNeutral)),
+            move |menu, _, _| {
                 let discard = discard.clone();
                 menu.item(delete_variable_menu_item().on_click(move |_, window, cx| {
                     let _ = discard.update(cx, |this, cx| this.cancel_new_variable(id, window, cx));
                 }))
-            });
+            },
+            window,
+            cx,
+        );
         let paste_duplicate = row
             .paste_issue
             .as_ref()
@@ -343,9 +347,11 @@ impl AppWindow {
                 style,
                 Some(
                     quote_button("new-variable-quotes", style, false).on_click(cx.listener(
-                        move |this, _, window, cx| {
+                        move |this, event: &ClickEvent, window, cx| {
                             this.update_new_variable(id, Some(style.next()), cx);
-                            this.focus_new_variable(id, true, window, cx);
+                            if event.mouse_position().is_some() {
+                                this.focus_new_variable(id, true, window, cx);
+                            }
                         },
                     )),
                 ),
@@ -357,13 +363,15 @@ impl AppWindow {
         } else {
             design::variable_field(false)
                 .id("new-variable-hidden")
+                .tab_index(0)
+                .focus_visible(|this| this.border_color(rgb(design::TAB_TEXT_ACTIVE)))
                 .role(Role::Button)
                 .aria_label(tr!("variable.show_value"))
                 .cursor_text()
                 .p(px(design::FIELD_PADDING_Y))
                 .when(!draft.value.is_empty(), |this| this.child(hidden_pattern()))
                 .on_click(cx.listener(move |this, _, window, cx| {
-                    this.focus_new_variable(id, true, window, cx)
+                    this.reveal_new_variable(id, window, cx);
                 }))
                 .into_any_element()
         };
@@ -388,13 +396,6 @@ impl AppWindow {
         div()
             .id("new-variable-row")
             .track_focus(&row.focus)
-            .key_context("EnvValue")
-            .on_action(cx.listener(move |this, _: &NextValue, window, cx| {
-                this.navigate_new_variable(id, false, window, cx)
-            }))
-            .on_action(cx.listener(move |this, _: &PreviousValue, window, cx| {
-                this.navigate_new_variable(id, true, window, cx)
-            }))
             .capture_action(cx.listener(move |this, _: &Escape, window, cx| {
                 this.cancel_new_variable(id, window, cx)
             }))
@@ -418,33 +419,49 @@ impl AppWindow {
                             .gap(px(10.))
                             .child(actions)
                             .child(
-                                div().flex_1().min_w_0().mx(px(-4.)).child(
-                                    Input::new(&row.name)
-                                        .appearance(false)
-                                        .bordered(false)
-                                        .with_size(Size::XSmall)
-                                        .h(px(18.))
-                                        .text_size(px(14.))
-                                        .font_weight(FontWeight::MEDIUM)
-                                        .line_height(px(18.))
-                                        .text_color(rgb(KEY_COLOR))
-                                        .aria_label(tr!("variable.name"))
-                                        .on_paste(move |item, window, cx| {
-                                            let Some(text) =
-                                                item.text().filter(|text| text.contains('='))
-                                            else {
-                                                return false;
-                                            };
-                                            // The paste action still holds the input entity while this hook runs.
-                                            let owner = owner.clone();
-                                            window.defer(cx, move |window, cx| {
-                                                let _ = owner.update(cx, |this, cx| {
-                                                    this.paste_new_variables(id, text, window, cx)
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .mx(px(-4.))
+                                    .rounded_sm()
+                                    .when(
+                                        window.last_input_was_keyboard()
+                                            && row
+                                                .name
+                                                .read(cx)
+                                                .focus_handle(cx)
+                                                .is_focused(window),
+                                        |this| this.focus_ring_style(window, cx),
+                                    )
+                                    .child(
+                                        Input::new(&row.name)
+                                            .appearance(false)
+                                            .bordered(false)
+                                            .with_size(Size::XSmall)
+                                            .h(px(18.))
+                                            .text_size(px(14.))
+                                            .font_weight(FontWeight::MEDIUM)
+                                            .line_height(px(18.))
+                                            .text_color(rgb(KEY_COLOR))
+                                            .aria_label(tr!("variable.name"))
+                                            .on_paste(move |item, window, cx| {
+                                                let Some(text) =
+                                                    item.text().filter(|text| text.contains('='))
+                                                else {
+                                                    return false;
+                                                };
+                                                // The paste action still holds the input entity while this hook runs.
+                                                let owner = owner.clone();
+                                                window.defer(cx, move |window, cx| {
+                                                    let _ = owner.update(cx, |this, cx| {
+                                                        this.paste_new_variables(
+                                                            id, text, window, cx,
+                                                        )
+                                                    });
                                                 });
-                                            });
-                                            true
-                                        }),
-                                ),
+                                                true
+                                            }),
+                                    ),
                             ),
                     )
                     .child(
@@ -558,6 +575,7 @@ impl AppWindow {
         tab_id: u64,
         field: TextField,
         prefix: &str,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let Some(session) = self.tab(tab_id).and_then(|tab| tab.content.as_ref()) else {
@@ -591,12 +609,21 @@ impl AppWindow {
             .editor
             .as_ref()
             .filter(|e| e.tab == tab_id && e.target == EditorTarget::Text(field));
+        let target = EditorTarget::Text(field);
+        let editable = !session.document.is_read_only();
+        let focus = self.field_preview(tab_id, target, editable, window, cx);
         let content = if let Some(editor) = editing {
             // Compensate Kit's 4px horizontal inset without moving the text.
             div()
                 .flex_1()
                 .min_w_0()
                 .mx(px(-4.))
+                .rounded_sm()
+                .when(
+                    window.last_input_was_keyboard()
+                        && editor.state.read(cx).focus_handle(cx).is_focused(window),
+                    |this| this.focus_ring_style(window, cx),
+                )
                 .child(
                     Textarea::new(&editor.state)
                         .appearance(false)
@@ -621,9 +648,15 @@ impl AppWindow {
             let accessible_text = text.clone();
             div()
                 .id(SharedString::from(format!("inline-{field:?}")))
+                .when(editable, |this| this.track_focus(&focus.focus))
                 .flex_1()
                 .min_w_0()
                 .h(px(18.))
+                .rounded_sm()
+                .when(
+                    window.last_input_was_keyboard() && focus.focus.is_focused(window),
+                    |this| this.focus_ring_style(window, cx),
+                )
                 .when(matches!(field, TextField::Name(id) if self.tab(tab_id).is_some_and(|tab| tab.matched == Some(id))), |this| {
                     let highlight = if color == SECONDARY { design::SELECTOR_BG } else { 0x4a3822 };
                     this.bg(rgb(highlight)).rounded_sm()
@@ -653,7 +686,7 @@ impl AppWindow {
                         };
                         Some(index.min(visible_end))
                     });
-                    this.begin_text_editor(tab_id, field, caret, window, cx)
+                    this.edit_preview(tab_id, target, focus.clone(), caret, window, cx)
                 }))
                 .child(
                     div()
@@ -677,7 +710,6 @@ impl AppWindow {
             .flex_col()
             .child(
                 div()
-                    .key_context("EnvValue")
                     .flex()
                     .items_start()
                     .w_full()
@@ -867,13 +899,14 @@ impl AppWindow {
                             list(
                                 list_state.clone(),
                                 cx.processor(move |this, index, window, cx| {
-                                    if index < count {
+                                    let row = if index < count {
                                         this.block_view(id, index, false, window, cx)
                                     } else if has_draft && index == count {
                                         this.new_variable_view(id, window, cx)
                                     } else {
                                         this.add_variable_row(cx)
-                                    }
+                                    };
+                                    this.keyboard_document_row(id, index, row, window, cx)
                                 }),
                             )
                             .size_full()
@@ -1009,32 +1042,33 @@ impl AppWindow {
                     .editor
                     .as_ref()
                     .filter(|e| e.tab == tab_id && e.target == EditorTarget::Value(id) && revealed);
+                let target = EditorTarget::Value(id);
+                let editable = !document.is_read_only();
+                // Tabbing to a hidden value keeps it masked until activated.
+                let focus = self.field_preview(tab_id, target, editable && revealed, window, cx);
                 let value_element = if let Some(editor) = editing {
-                    let button = editor
-                        .state
-                        .read(cx)
-                        .focus_handle(cx)
-                        .is_focused(window)
-                        .then(|| {
-                            quote_button(("cycle-quotes", id.0), quote_style, commented).on_click(
-                                cx.listener(move |this, _, window, cx| {
-                                    this.cycle_quotes(tab_id, id, window, cx);
-                                }),
-                            )
-                        });
+                    let button = quote_button(("cycle-quotes", id.0), quote_style, commented)
+                        .on_click(cx.listener(move |this, event: &ClickEvent, window, cx| {
+                            this.cycle_quotes(
+                                tab_id,
+                                id,
+                                event.mouse_position().is_some(),
+                                window,
+                                cx,
+                            );
+                        }));
                     value_editor_frame(
                         &editor.state,
                         Textarea::new(&editor.state)
                             .aria_label(tr!("variable.value", name = name))
                             .accessibility_id(format!("value-editor-{}", id.0)),
                         quote_style,
-                        button,
+                        Some(button),
                         commented,
                         window,
                         cx,
                     )
                     .id(("value-editor-context", id.0))
-                    .key_context("EnvValue")
                     .into_any_element()
                 } else {
                     let preview_scroll = window
@@ -1082,6 +1116,11 @@ impl AppWindow {
                     };
                     design::variable_field(commented)
                         .id(("edit-value", id.0))
+                        .when(editable, |this| this.track_focus(&focus.focus))
+                        .when(
+                            window.last_input_was_keyboard() && focus.focus.is_focused(window),
+                            |this| this.focus_ring_style(window, cx),
+                        )
                         .flex_1()
                         .pl(px(design::FIELD_PADDING_X) + quote_inset)
                         .pr(px(design::FIELD_PADDING_X) + quote_inset)
@@ -1089,7 +1128,7 @@ impl AppWindow {
                         .role(Role::Button)
                         .aria_label(tr!("variable.edit_named_value", name = name))
                         .on_click(cx.listener(move |this, _, window, cx| {
-                            this.begin_editor(tab_id, id, window, cx)
+                            this.edit_preview(tab_id, target, focus.clone(), None, window, cx)
                         }))
                         .child(
                             div()
@@ -1276,7 +1315,13 @@ impl AppWindow {
                                 )
                                 .child(actions),
                             )
-                            .child(self.inline_text_view(tab_id, TextField::Name(id), "", cx)),
+                            .child(self.inline_text_view(
+                                tab_id,
+                                TextField::Name(id),
+                                "",
+                                window,
+                                cx,
+                            )),
                     )
                     .child(
                         div()
@@ -1357,6 +1402,7 @@ impl AppWindow {
                                     tab_id,
                                     TextField::InlineComment(id),
                                     "#",
+                                    window,
                                     cx,
                                 ))
                             })
@@ -1395,7 +1441,7 @@ impl AppWindow {
                     .aria_label(tr!("editor.move_comment"))
                     .child(design::asset(design::Asset::Comment)),
                 )
-                .child(self.inline_text_view(tab_id, TextField::Comment(index), "", cx))
+                .child(self.inline_text_view(tab_id, TextField::Comment(index), "", window, cx))
                 .into_any_element(),
             BlockKind::Blank => div().h(px(6.)).into_any_element(),
             BlockKind::Opaque(diagnostic) => div()

@@ -233,17 +233,11 @@ pub(super) fn click_menu(
     let changed_state = state.clone();
     let content_state = state.clone();
     let open = state.read(cx).menu.is_some();
-    let menu_focus = state
-        .read(cx)
-        .menu
-        .as_ref()
-        .map(|menu| menu.focus_handle(cx));
     gpui_kit::component::popover::Popover::new(SharedString::from(id))
         .appearance(false)
         // Left mouse-down must reach the drag handle. Right click still opens the menu.
         .mouse_button(MouseButton::Right)
         .open(open)
-        .when_some(menu_focus, |this, handle| this.track_focus(&handle))
         .trigger(button.on_click(move |_, window, cx| {
             if cx.has_active_drag() {
                 return;
@@ -271,6 +265,9 @@ pub(super) fn click_menu(
             let menu = content_state.update(cx, |state, cx| {
                 let menu = state.menu.clone()?;
                 if state.dismissal.is_none() {
+                    // Keyboard activation opens the popover before this menu
+                    // exists. Focus it as soon as its content is mounted.
+                    menu.focus_handle(cx).focus(window, cx);
                     state.dismissal = Some(window.subscribe(
                         &menu,
                         cx,
@@ -284,7 +281,7 @@ pub(super) fn click_menu(
                 }
                 Some(menu)
             });
-            div().children(menu)
+            div().key_context("VariableMenu").children(menu)
         })
 }
 

@@ -65,9 +65,12 @@ To create a local `Dotvar.app`, run `python3 scripts/package-macos.py` and open 
 | Open a file or folder | **⌘O** |
 | Add a project | **⇧⌘O** |
 | Switch projects | **⌘K** |
+| Switch to a tab by position | **⌘1**–**⌘9** |
 | Find a variable | **⌘F** |
 | Save / Save As | **⌘S** / **⇧⌘S** |
 | Copy the working document | **⇧⌘C** |
+
+Drag tabs to reorder them within a project. Tab shortcuts follow the new order.
 
 Copy actions write literal values to the macOS clipboard, including hidden values. The local catalog stores file and project paths, tab order, and selection. Preferences are stored alongside it in `~/Library/Application Support/Dotvar`.
 

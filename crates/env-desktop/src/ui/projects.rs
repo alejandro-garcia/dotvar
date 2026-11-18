@@ -495,6 +495,34 @@ impl AppWindow {
             })
             .into_any_element()
     }
+    pub(super) fn select_tab_at(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.creating_file.is_some()
+            || self
+                .projects
+                .get(self.active_project)
+                .is_none_or(|p| index >= p.tabs.len())
+        {
+            return false;
+        }
+        self.cancel_tab_name_edit(window, cx);
+        self.finish_editor(false, window, cx);
+        self.search = None;
+        self.notice = None;
+        let project = &mut self.projects[self.active_project];
+        project.active = index;
+        project.scroll.scroll_to_item(index);
+        self.load_active(cx);
+        self.persist(cx);
+        self.refresh_watches(cx);
+        cx.notify();
+        true
+    }
+
     pub(super) fn move_tab(&mut self, right: bool, window: &mut Window, cx: &mut Context<Self>) {
         if self.new_file_draft().is_some() {
             return;
@@ -507,8 +535,7 @@ impl AppWindow {
                 p.active.checked_sub(1)
             };
             if let Some(next) = next.filter(|n| *n < p.tabs.len()) {
-                p.tabs.swap(p.active, next);
-                p.active = next;
+                p.reorder_tab(p.active, next);
             }
         }
         self.persist(cx);

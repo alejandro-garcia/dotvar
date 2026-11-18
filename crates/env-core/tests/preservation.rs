@@ -256,6 +256,208 @@ fn quote_concatenation_and_line_continuations_are_not_structured() {
 }
 
 #[test]
+fn quoted_tail_keeps_open_second_token_opaque() {
+    let prefix = b"BEFORE=safe\n";
+    let source = b"BEFORE=safe\nBAD='first'\"second\nLOOKS_LIKE_ENTRY=still quoted";
+    assert_opaque_quoted_tail(source, prefix);
+}
+
+#[test]
+fn quoted_tail_hash_inside_an_open_suffix_keeps_the_remainder_opaque() {
+    let prefix = b"BEFORE=safe\n";
+    for opaque_line in [
+        b"BAD='first'\"second # still quoted\n".as_slice(),
+        b"BAD=\"first\"'second\t# still quoted\n",
+        b"BAD='first'\"second\"#'third\n",
+        b"BAD='first'\"second\"\\ #'third\n",
+    ] {
+        let source = [
+            prefix.as_slice(),
+            opaque_line,
+            b"LOOKS_LIKE_ENTRY=still quoted",
+        ]
+        .concat();
+        assert_opaque_quoted_tail(&source, prefix);
+    }
+}
+
+#[test]
+fn quoted_tail_stays_opaque_when_second_token_closes_on_a_later_line() {
+    let prefix = b"BEFORE=safe\r\n";
+    let source = b"BEFORE=safe\r\nBAD=\"first\r\nline\"'second\r\n\
+                   LOOKS_LIKE_ENTRY=still quoted\r\n'\r\nAFTER=uncertain\r\n";
+    assert_opaque_quoted_tail(source, prefix);
+}
+
+fn assert_opaque_quoted_tail(source: &[u8], prefix: &[u8]) -> Document {
+    let document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert_eq!(document.blocks()[0].range, 0..prefix.len());
+    assert_eq!(document.blocks()[1].range, prefix.len()..source.len());
+    assert!(matches!(
+        document.blocks()[1].kind,
+        BlockKind::Opaque(Diagnostic::UnsupportedSyntax)
+    ));
+    assert_eq!(document.blocks().len(), 2);
+    assert_eq!(entries(&document).len(), 1);
+    assert_eq!(
+        document.text(entry(&document, "BEFORE").value.clone()),
+        Some("safe")
+    );
+    document
+}
+
+#[test]
+fn quoted_tail_balanced_concatenation_keeps_following_entry_editable() {
+    let opaque_line = b"BAD=\"first\"'second'\n";
+    let source = b"BAD=\"first\"'second'\nAFTER=safe";
+    let mut document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert_eq!(document.blocks()[0].range, 0..opaque_line.len());
+    assert!(matches!(
+        document.blocks()[0].kind,
+        BlockKind::Opaque(Diagnostic::UnsupportedSyntax)
+    ));
+    assert_eq!(entries(&document).len(), 1);
+    let after = entry(&document, "AFTER").id;
+    assert!(
+        document
+            .set_value(after, "changed", document.revision())
+            .unwrap()
+    );
+    assert_eq!(document.bytes(), b"BAD=\"first\"'second'\nAFTER=changed");
+    assert_partition(&document);
+}
+
+#[test]
+fn quoted_tail_balanced_concatenation_ignores_delimiters_in_trailing_comments() {
+    for opaque_line in [
+        b"BAD=\"first\"'second' # don't split\n".as_slice(),
+        b"BAD='first'\"second # literal\"\t# unmatched (`\" \\\r\n",
+    ] {
+        let source = [opaque_line, b"AFTER=safe"].concat();
+        let document = Document::from_bytes(source.clone());
+        assert_eq!(document.bytes(), source);
+        assert_partition(&document);
+        assert_eq!(document.blocks()[0].range, 0..opaque_line.len());
+        assert!(matches!(
+            document.blocks()[0].kind,
+            BlockKind::Opaque(Diagnostic::UnsupportedSyntax)
+        ));
+        assert_eq!(entries(&document).len(), 1);
+        assert_eq!(
+            document.entry_value(entry(&document, "AFTER").id),
+            Some("safe")
+        );
+    }
+}
+
+#[test]
+fn quoted_tail_ignores_unmatched_quote_in_trailing_comment() {
+    let source = b"GOOD='first' \t# unmatched \"\r\nAFTER=safe\r\n";
+    let document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert_eq!(document.blocks().len(), 2);
+    assert_eq!(entries(&document).len(), 2);
+    let good = entry(&document, "GOOD");
+    assert_eq!(document.text(good.value.clone()), Some("'first'"));
+    assert_eq!(
+        document.text(good.inline_comment.clone().unwrap()),
+        Some("# unmatched \"")
+    );
+    assert_eq!(
+        document.entry_value(entry(&document, "AFTER").id),
+        Some("safe")
+    );
+}
+
+#[test]
+fn quoted_tail_control_with_a_trailing_comment_stays_line_bounded() {
+    let opaque_line = b"BAD=\"control\x1b\" # unmatched '\n";
+    let source = b"BAD=\"control\x1b\" # unmatched '\nAFTER=safe";
+    let document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert_eq!(document.blocks()[0].range, 0..opaque_line.len());
+    assert!(matches!(
+        document.blocks()[0].kind,
+        BlockKind::Opaque(Diagnostic::UnsupportedSyntax)
+    ));
+    assert_eq!(entries(&document).len(), 1);
+    assert_eq!(
+        document.entry_value(entry(&document, "AFTER").id),
+        Some("safe")
+    );
+}
+
+#[test]
+fn quoted_tail_control_with_an_open_second_token_survives_prefix_edit() {
+    let prefix = b"BEFORE=safe\r\n";
+    let source = b"BEFORE=safe\r\nBAD=\"control\x1b\"'second\r\nLOOKS_LIKE_ENTRY=still quoted";
+    let mut document = assert_opaque_quoted_tail(source, prefix);
+    let before = entry(&document, "BEFORE").id;
+    assert!(
+        document
+            .set_value(before, "changed", document.revision())
+            .unwrap()
+    );
+
+    let edited_prefix = b"BEFORE=changed\r\n";
+    let opaque_tail = &source[prefix.len()..];
+    assert_eq!(
+        document.bytes(),
+        [edited_prefix.as_slice(), opaque_tail].concat()
+    );
+    assert_partition(&document);
+    assert_eq!(document.blocks().len(), 2);
+    assert_eq!(entries(&document).len(), 1);
+    assert_eq!(
+        document.blocks()[1].range,
+        edited_prefix.len()..document.bytes().len()
+    );
+    assert!(matches!(
+        document.blocks()[1].kind,
+        BlockKind::Opaque(Diagnostic::UnsupportedSyntax)
+    ));
+}
+
+#[test]
+fn quoted_tail_adjacent_hash_preserves_line_bounded_ambiguity() {
+    let source = b"BAD='first'#ambiguous \"\nAFTER=safe\n";
+    let document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert!(matches!(
+        document.blocks()[0].kind,
+        BlockKind::Opaque(Diagnostic::AmbiguousComment)
+    ));
+    assert_eq!(entries(&document).len(), 1);
+    assert_eq!(
+        document.entry_value(entry(&document, "AFTER").id),
+        Some("safe")
+    );
+}
+
+#[test]
+fn quoted_tail_in_a_standalone_comment_stays_within_that_line() {
+    let comment = b"# BAD='first'\"second\n";
+    let source = b"# BAD='first'\"second\nAFTER=safe\n";
+    let document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.bytes(), source);
+    assert_partition(&document);
+    assert_eq!(document.blocks()[0].range, 0..comment.len());
+    assert!(matches!(document.blocks()[0].kind, BlockKind::Comment));
+    assert_eq!(entries(&document).len(), 1);
+    assert_eq!(
+        document.entry_value(entry(&document, "AFTER").id),
+        Some("safe")
+    );
+}
+
+#[test]
 fn controls_inside_quoted_values_are_preserved_as_opaque() {
     for source in [
         b"BEFORE=safe\nBAD=\"nul\0inside\"\nAFTER=safe\n".as_slice(),

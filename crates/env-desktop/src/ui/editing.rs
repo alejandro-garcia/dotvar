@@ -1,8 +1,9 @@
 use super::*;
 use crate::i18n::tr;
-use crate::session::SessionError;
-use env_core::{EditError, TextField};
+use crate::session::{RenameTarget, SessionError};
+use env_core::{BlockKind, EditError, TextField};
 use gpui_kit::component::input::{Input, InputEvent, InputState, TextareaState};
+use std::cell::Cell;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum EditorTarget {
@@ -31,7 +32,14 @@ pub(super) struct ActiveEditor {
     pub state: Entity<TextareaState>,
     source_prefix: String,
     changed: bool,
+    preview: Option<FieldPreview>,
     _subscription: Subscription,
+}
+
+#[derive(Clone)]
+pub(super) struct FieldPreview {
+    pub focus: FocusHandle,
+    restoring_focus: Rc<Cell<bool>>,
 }
 
 /// Keep source spacing after `#` outside the visible comment editor.
@@ -42,7 +50,7 @@ pub(super) fn comment_content(text: &str) -> (&str, &str) {
 
 pub(super) struct RenameDialog {
     tab: u64,
-    entry: EntryId,
+    target: RenameTarget,
     name: Entity<InputState>,
     error: Option<UiError>,
 }
@@ -60,6 +68,58 @@ impl RenameDialog {
 }
 
 impl AppWindow {
+    pub(super) fn field_preview(
+        &self,
+        tab_id: u64,
+        target: EditorTarget,
+        auto_edit: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> FieldPreview {
+        let preview = window
+            .use_keyed_state(format!("field-preview-{tab_id}-{target:?}"), cx, |_, cx| {
+                FieldPreview {
+                    focus: cx.focus_handle().tab_stop(true),
+                    restoring_focus: Rc::new(Cell::new(false)),
+                }
+            })
+            .read(cx)
+            .clone();
+        if !preview.focus.is_focused(window) {
+            preview.restoring_focus.set(false);
+        } else if auto_edit && window.last_input_was_keyboard() && !preview.restoring_focus.get() {
+            // Run after layout so replacing the preview can safely update the list.
+            let owner = cx.weak_entity();
+            let entering = preview.clone();
+            window.defer(cx, move |window, cx| {
+                if entering.focus.is_focused(window) {
+                    let _ = owner.update(cx, |this, cx| {
+                        this.edit_preview(tab_id, target, entering, None, window, cx);
+                    });
+                }
+            });
+        }
+        preview
+    }
+
+    pub(super) fn edit_preview(
+        &mut self,
+        tab_id: u64,
+        target: EditorTarget,
+        preview: FieldPreview,
+        caret: Option<usize>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.begin_field_editor(tab_id, target, caret, window, cx);
+        if let Some(editor) = &mut self.editor
+            && editor.tab == tab_id
+            && editor.target == target
+        {
+            editor.preview = Some(preview);
+        }
+    }
+
     pub(super) fn begin_editor(
         &mut self,
         tab_id: u64,
@@ -220,8 +280,7 @@ impl AppWindow {
                         }) {
                             return;
                         }
-                        this.finish_editor(false, window, cx);
-                        this.focus.focus(window, cx);
+                        this.close_field_editor(false, window, cx);
                     }
                     _ => {}
                 }
@@ -237,6 +296,7 @@ impl AppWindow {
             state,
             source_prefix,
             changed: false,
+            preview: None,
             _subscription: subscription,
         });
         cx.notify();
@@ -246,6 +306,7 @@ impl AppWindow {
         &mut self,
         tab_id: u64,
         id: EntryId,
+        refocus_editor: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -269,7 +330,9 @@ impl AppWindow {
         }
         self.error = None;
         self.notice = None;
-        state.update(cx, |state, cx| state.focus(window, cx));
+        if refocus_editor {
+            state.update(cx, |state, cx| state.focus(window, cx));
+        }
         cx.notify();
     }
 
@@ -282,6 +345,7 @@ impl AppWindow {
         let Some(editor) = self.editor.take() else {
             return;
         };
+        let focused = editor.state.read(cx).focus_handle(cx).is_focused(window);
         let text = format!("{}{}", editor.source_prefix, editor.state.read(cx).value());
         if let Some(tab) = self.tab(editor.tab)
             && editor.row < tab.list.item_count()
@@ -315,8 +379,22 @@ impl AppWindow {
         if cancel {
             self.error = None;
         }
-        self.focus.focus(window, cx);
+        if focused {
+            self.focus.focus(window, cx);
+        }
         cx.notify();
+    }
+
+    fn close_field_editor(&mut self, cancel: bool, window: &mut Window, cx: &mut Context<Self>) {
+        let preview = self
+            .editor
+            .as_ref()
+            .and_then(|editor| editor.preview.clone());
+        self.finish_editor(cancel, window, cx);
+        if let Some(preview) = preview {
+            preview.restoring_focus.set(true);
+            preview.focus.focus(window, cx);
+        }
     }
 
     pub(super) fn editor_key(
@@ -368,6 +446,9 @@ impl AppWindow {
             }
             return;
         }
+        if event.keystroke.key != "escape" {
+            return;
+        }
         let Some(editor) = &self.editor else { return };
         if !editor.state.read(cx).focus_handle(cx).is_focused(window) {
             return;
@@ -377,88 +458,131 @@ impl AppWindow {
         }) {
             return;
         }
-        match event.keystroke.key.as_str() {
-            "escape" => {
-                self.finish_editor(true, window, cx);
-                cx.stop_propagation();
-            }
-            "tab"
-                if !event.keystroke.modifiers.control
-                    && !event.keystroke.modifiers.alt
-                    && !event.keystroke.modifiers.platform =>
-            {
-                self.navigate_field(event.keystroke.modifiers.shift, window, cx);
-                cx.stop_propagation();
-            }
-            _ => {}
-        }
+        self.close_field_editor(true, window, cx);
+        cx.stop_propagation();
     }
 
-    pub(super) fn navigate_field(
+    pub(super) fn keyboard_document_row(
         &mut self,
+        tab_id: u64,
+        index: usize,
+        content: AnyElement,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let row_focus = window
+            .use_keyed_state(format!("keyboard-row-{tab_id}-{index}"), cx, |_, cx| {
+                cx.focus_handle()
+            })
+            .read(cx)
+            .clone();
+        let pending = self
+            .tab_mut(tab_id)
+            .and_then(|tab| tab.pending_row_focus.take_if(|(row, _)| *row == index));
+        let trailing_anchor = pending
+            .filter(|(_, backwards)| *backwards)
+            .map(|_| cx.focus_handle());
+        if let Some((_, backwards)) = pending {
+            let anchor = trailing_anchor.as_ref().unwrap_or(&row_focus).clone();
+            let previous = window.focused(cx);
+            window.on_next_frame(move |window, cx| {
+                if window.focused(cx) == previous && window.last_input_was_keyboard() {
+                    anchor.focus(window, cx);
+                    if backwards {
+                        window.focus_prev(cx);
+                    } else {
+                        window.focus_next(cx);
+                    }
+                }
+            });
+        }
+        let next_focus = row_focus.clone();
+        let prev_focus = row_focus.clone();
+        div()
+            .id(("keyboard-row", index))
+            .relative()
+            .track_focus(&row_focus)
+            .key_context("EnvDocumentRow")
+            .on_action(cx.listener(move |this, _: &NextField, window, cx| {
+                this.navigate_document_row(tab_id, index, &next_focus, false, window, cx);
+            }))
+            .on_action(cx.listener(move |this, _: &PreviousField, window, cx| {
+                this.navigate_document_row(tab_id, index, &prev_focus, true, window, cx);
+            }))
+            .child(content)
+            .when_some(trailing_anchor, |this, focus| {
+                this.child(
+                    div()
+                        .id("end-of-row")
+                        .absolute()
+                        .size_0()
+                        .track_focus(&focus),
+                )
+            })
+            .into_any_element()
+    }
+
+    fn navigate_document_row(
+        &mut self,
+        tab_id: u64,
+        index: usize,
+        row_focus: &FocusHandle,
         backwards: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let Some(editor) = self.editor.as_ref() else {
+        let composing = self.editor.as_ref().is_some_and(|editor| {
+            editor.state.read(cx).focus_handle(cx).is_focused(window)
+                && editor.state.update(cx, |state, cx| {
+                    state.marked_text_range(window, cx).is_some()
+                })
+        }) || self
+            .tab(tab_id)
+            .and_then(|tab| tab.new_variable.as_ref())
+            .is_some_and(|row| row.is_composing(window, cx));
+        if composing {
             cx.propagate();
+            return;
+        }
+        if backwards {
+            window.focus_prev(cx);
+        } else {
+            window.focus_next(cx);
+        }
+        if row_focus.contains_focused(window, cx) {
+            return;
+        }
+        let Some(tab) = self.tab_mut(tab_id) else {
             return;
         };
-        if editor.state.update(cx, |state, cx| {
-            state.marked_text_range(window, cx).is_some()
-        }) {
-            cx.propagate();
-            return;
-        }
-        let (tab, current) = (editor.tab, editor.target);
-        let fields: Vec<_> = self
-            .tab(tab)
-            .and_then(|t| t.content.as_ref())
-            .map(|s| {
-                s.document
-                    .blocks()
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(row, b)| match &b.kind {
-                        env_core::BlockKind::Assignment(e) => {
-                            let mut fields = vec![
-                                EditorTarget::Text(TextField::Name(e.id)),
-                                EditorTarget::Value(e.id),
-                            ];
-                            if e.inline_comment.is_some() {
-                                fields.push(EditorTarget::Text(TextField::InlineComment(e.id)));
-                            }
-                            fields
-                        }
-                        env_core::BlockKind::Comment => {
-                            vec![EditorTarget::Text(TextField::Comment(row))]
-                        }
-                        _ => vec![],
-                    })
-                    .collect()
+        let Some(session) = &tab.content else { return };
+        let navigable = |row: usize| {
+            session.document.blocks().get(row).is_none_or(|block| {
+                matches!(block.kind, BlockKind::Assignment(_) | BlockKind::Comment)
             })
-            .unwrap_or_default();
-        let next = fields
-            .iter()
-            .position(|field| *field == current)
-            .and_then(|i| {
-                if backwards {
-                    i.checked_sub(1).and_then(|i| fields.get(i))
-                } else {
-                    fields.get(i + 1)
-                }
-            })
-            .copied();
-        if let Some(target) = next
-            && let Some(tab) = self.tab(tab)
-            && let Some(session) = &tab.content
-            && let Some(row) = target.row(session)
+        };
+        let next = if backwards {
+            (0..index).rev().find(|&row| navigable(row))
+        } else {
+            (index + 1..tab.list.item_count()).find(|&row| navigable(row))
+        };
+        let Some(next) = next else { return };
+        let viewport = tab.list.viewport_bounds();
+        let bounds = tab.list.bounds_for_item(next);
+        // GPUI registers tab stops for rendered rows. Mount the adjacent row
+        // before continuing whenever native traversal reaches that boundary.
+        if bounds.is_none_or(|row| row.top() >= viewport.bottom() || row.bottom() <= viewport.top())
         {
-            tab.list.scroll_to_reveal_item(row);
-        }
-        self.finish_editor(false, window, cx);
-        if let Some(target) = next {
-            self.begin_field_editor(tab, target, None, window, cx);
+            tab.pending_row_focus = Some((next, backwards));
+            if bounds.is_some_and(|row| row.size.height <= viewport.size.height) {
+                tab.list.scroll_to_reveal_item(next);
+            } else {
+                tab.list.scroll_to(ListOffset {
+                    item_ix: next,
+                    offset_in_item: px(0.),
+                });
+            }
+            cx.notify();
         }
     }
 
@@ -556,15 +680,17 @@ impl AppWindow {
             return;
         }
         let tab_id = tab.id;
-        let key = session
+        let Some(key) = session
             .document
             .entry(entry)
             .and_then(|e| session.document.text(e.name.clone()))
-            .unwrap_or("")
-            .to_owned();
+        else {
+            return;
+        };
+        let target = session.capture_rename_target(entry);
         let name = cx.new(|cx| {
             InputState::new(window, cx)
-                .default_value(key)
+                .default_value(key.to_owned())
                 .placeholder(tr!("variable.name_example"))
         });
         name.update(cx, |s, cx| {
@@ -573,7 +699,7 @@ impl AppWindow {
         });
         self.dialog = Some(RenameDialog {
             tab: tab_id,
-            entry,
+            target,
             name,
             error: None,
         });
@@ -581,25 +707,28 @@ impl AppWindow {
     }
 
     fn apply_rename(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(dialog) = self.dialog.as_ref() else {
+        let Some(mut dialog) = self.dialog.take() else {
             return;
         };
         let tab_id = dialog.tab;
-        let entry = dialog.entry;
-        let name = dialog.name.read(cx).value().to_string();
-        let Some(session) = self.tab_mut(tab_id).and_then(|t| t.content.as_mut()) else {
-            return;
-        };
-        match session.rename(entry, &name) {
-            Ok(()) => {
-                self.dialog = None;
+        let name = dialog.name.read(cx).value();
+        let result = self
+            .tab_mut(tab_id)
+            .and_then(|t| t.content.as_mut())
+            .ok_or(SessionError::StaleRenameTarget)
+            .and_then(|session| session.rename_captured(&dialog.target, &name));
+        match result {
+            Ok(entry) => {
                 self.error = None;
                 self.begin_editor(tab_id, entry, window, cx);
             }
+            Err(SessionError::StaleRenameTarget) => {
+                self.error = Some(UiError::Message("edit_error.stale_revision"));
+                self.focus.focus(window, cx);
+            }
             Err(error) => {
-                if let Some(d) = self.dialog.as_mut() {
-                    d.error = Some(UiError::Session(error));
-                }
+                dialog.set_error(UiError::Session(error));
+                self.dialog = Some(dialog);
             }
         }
         cx.notify();
@@ -621,7 +750,6 @@ impl AppWindow {
             Ok(()) => {
                 self.error = None;
                 self.notice = None;
-                self.needs_root_focus = true;
             }
             Err(error) => self.show_session_error(error, window, cx),
         }

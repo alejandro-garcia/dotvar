@@ -1,3 +1,4 @@
+use super::tab_rename::FileCreationSource;
 use super::*;
 use crate::i18n::tr;
 use crate::session::SaveRequest;
@@ -254,64 +255,20 @@ impl AppWindow {
         let receiver = cx.prompt_for_new_path(&root, Some(".env"));
         let handle = window.window_handle();
         cx.spawn(async move |this, cx| {
-            let path = match receiver.await {
-                Ok(Ok(Some(path))) if model::is_env_file(&path) => path,
-                Ok(Ok(None)) => return,
-                _ => {
-                    let _ = this.update(cx, |this, cx| {
-                        this.error = Some(UiError::Message("file.invalid_new"));
-                        cx.notify();
-                    });
-                    return;
-                }
-            };
-            let result = cx
-                .background_executor()
-                .spawn(async move { storage::create_empty(path) })
-                .await;
+            let picked = receiver.await;
             let _ = handle.update(cx, |_, window, cx| {
                 let _ = this.update(cx, |this, cx| {
-                    match result {
-                        Ok(baseline) => {
-                            let root = baseline
-                                .resolved_path
-                                .parent()
-                                .unwrap_or(std::path::Path::new("/"))
-                                .to_path_buf();
-                            let tab = this.make_tab(baseline.chosen_path.clone());
-                            this.attach_loaded(tab, baseline);
-                            let p = if let Some(i) =
-                                this.projects.iter().position(|p| p.root == root)
-                            {
-                                i
-                            } else {
-                                this.next_project += 1;
-                                this.projects.push(Project {
-                                    id: this.next_project,
-                                    root,
-                                    tabs: Vec::new(),
-                                    active: 0,
-                                    available: Vec::new(),
-                                    missing: false,
-                                    scroll: ScrollHandle::new(),
-                                });
-                                this.projects.len() - 1
-                            };
-                            this.projects[p].tabs.push(TabReference {
-                                document: tab,
-                                path: this.documents[&tab].path.clone(),
-                            });
-                            this.projects[p].active = this.projects[p].tabs.len() - 1;
-                            this.active_project = p;
-                            this.error = None;
-                            this.focus.focus(window, cx);
-                            this.persist(cx);
-                            this.refresh_watches(cx);
-                            this.scan_external(cx);
+                    let result = match picked {
+                        Ok(Ok(Some(path))) if model::is_env_file(&path) => {
+                            this.start_file_creation(path, FileCreationSource::Menu, window, cx)
                         }
-                        Err(error) => this.error = Some(UiError::Storage(error)),
+                        Ok(Ok(None)) => return,
+                        _ => Err(UiError::Message("file.invalid_new")),
+                    };
+                    if let Err(error) = result {
+                        this.error = Some(error);
+                        cx.notify();
                     }
-                    cx.notify();
                 });
             });
         })

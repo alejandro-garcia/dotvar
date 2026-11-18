@@ -36,13 +36,14 @@ mod new_variable;
 mod palette;
 mod projects;
 mod reorder;
+mod tab_drag;
 mod tab_rename;
 mod welcome;
 use editing::{ActiveEditor, EditorTarget, RenameDialog};
 use interaction::SearchBox;
 use new_variable::NewVariableRow;
 use palette::ProjectPalette;
-use tab_rename::TabNameEditor;
+use tab_rename::{PendingFileCreation, TabNameEditor};
 
 use design::{CONTENT_BG, KEY_COLOR, SECONDARY, WINDOW_BG};
 
@@ -87,7 +88,36 @@ impl InteractionMetrics {
 
 #[cfg(test)]
 mod tests {
-    use super::{FileTab, ListOffset, PathBuf, px};
+    use super::{
+        EntryId, FileTab, ListOffset, PathBuf, interaction::toggle_all_value_visibility, px,
+    };
+
+    #[test]
+    fn new_value_visibility_hide_all_masks_pending_value() {
+        let mut tab = FileTab::new(1, PathBuf::from("synthetic.env"));
+        tab.revealed = true;
+        tab.exceptions.insert(EntryId(1));
+        let mut pending_revealed = true;
+
+        toggle_all_value_visibility(
+            &mut tab.revealed,
+            &mut tab.exceptions,
+            Some(&mut pending_revealed),
+        );
+
+        assert!(!pending_revealed, "Hide All must mask the pending value");
+        assert!(!tab.revealed);
+        assert!(tab.exceptions.is_empty());
+
+        toggle_all_value_visibility(
+            &mut tab.revealed,
+            &mut tab.exceptions,
+            Some(&mut pending_revealed),
+        );
+
+        assert!(tab.revealed);
+        assert!(pending_revealed, "Show All must reveal the pending value");
+    }
 
     #[test]
     fn changing_editor_registration_preserves_partial_row_scroll() {
@@ -138,6 +168,7 @@ struct FileTab {
     exceptions: HashSet<EntryId>,
     copied: BTreeMap<Option<EntryId>, std::time::Instant>,
     list: ListState,
+    pending_row_focus: Option<(usize, bool)>,
     new_variable: Option<NewVariableRow>,
     layout_work: Option<(u64, u64)>,
     reorder: Option<reorder::ReorderMotion>,
@@ -203,6 +234,7 @@ impl FileTab {
             exceptions: HashSet::new(),
             copied: BTreeMap::new(),
             list: ListState::new(0, ListAlignment::Top, px(200.)),
+            pending_row_focus: None,
             new_variable: None,
             layout_work: None,
             reorder: None,
@@ -212,6 +244,12 @@ impl FileTab {
     }
     fn dirty(&self) -> bool {
         self.content.as_ref().is_some_and(DocumentSession::is_dirty)
+    }
+    fn matches_baseline(&self, baseline: &storage::FileBaseline) -> bool {
+        self.content.as_ref().is_some_and(|session| {
+            session.baseline.identity() == baseline.identity()
+                || session.baseline.resolved_path == baseline.resolved_path
+        })
     }
     fn saving(&self) -> bool {
         self.content
@@ -261,7 +299,7 @@ pub struct AppWindow {
     editor: Option<ActiveEditor>,
     dialog: Option<RenameDialog>,
     tab_name_editor: Option<TabNameEditor>,
-    creating_file: Option<PathBuf>,
+    creating_file: Option<PendingFileCreation>,
     search: Option<SearchBox>,
     palette: Option<ProjectPalette>,
     notice: Option<&'static str>,
@@ -489,13 +527,7 @@ impl AppWindow {
         let existing = self
             .documents
             .values()
-            .find(|t| {
-                t.id != id
-                    && t.content.as_ref().is_some_and(|s| {
-                        s.baseline.identity() == baseline.identity()
-                            || s.baseline.resolved_path == baseline.resolved_path
-                    })
-            })
+            .find(|t| t.id != id && t.matches_baseline(&baseline))
             .map(|t| t.id);
         if let Some(existing) = existing {
             for p in &mut self.projects {
@@ -794,6 +826,11 @@ impl Render for AppWindow {
         let tabs = self.projects.get(self.active_project).map(|p| {
             let project = p.id;
             let count = p.tabs.len() + usize::from(creating_tab);
+            let can_reorder = p.tabs.len() > 1
+                && !creating_tab
+                && self.dialog.is_none()
+                && self.palette.is_none()
+                && !self.config_closing;
             BaseTabs::new("files")
                 .flex()
                 .gap(px(5.))
@@ -842,6 +879,9 @@ impl Render for AppWindow {
                                 }))
                                 .font_family(design::UI_FONT)
                                 .text_size(px(16.))
+                                .when(can_reorder && renaming.is_none(), |tab| {
+                                    tab_drag::draggable_tab(tab, p, index)
+                                })
                                 .child(design::asset(design::file_icon(&reference.path, selected)))
                                 .child(if let Some(rename) = renaming {
                                     rename.input(tab.rename_destination.is_some())
@@ -919,15 +959,7 @@ impl Render for AppWindow {
                                     cx.notify();
                                 }))
                                 .on_click(cx.listener(move |this, _, window, cx| {
-                                    this.cancel_tab_name_edit(window, cx);
-                                    this.finish_editor(false, window, cx);
-                                    this.search = None;
-                                    this.notice = None;
-                                    this.projects[this.active_project].active = index;
-                                    this.load_active(cx);
-                                    this.persist(cx);
-                                    this.refresh_watches(cx);
-                                    cx.notify();
+                                    this.select_tab_at(index, window, cx);
                                 }))
                         }),
                 )
@@ -952,6 +984,11 @@ impl Render for AppWindow {
                     )
                 })
                 .when(!p.missing, |tabs| tabs.child(self.add_file_button(cx)))
+                .when(can_reorder, |tabs| {
+                    tabs.on_drop(cx.listener(|this, drag: &tab_drag::TabDrag, window, cx| {
+                        this.drop_tab(drag, window, cx);
+                    }))
+                })
         });
         let recovery_view = project
             .filter(|_| show_recovery)
@@ -1144,6 +1181,15 @@ impl Render for AppWindow {
             .on_action(
                 cx.listener(|this, _: &PreviousTab, window, cx| this.cycle_tab(true, window, cx)),
             )
+            .on_action(cx.listener(|this, action: &SelectTabAt, window, cx| {
+                if this.palette.is_none()
+                    && this.dialog.is_none()
+                    && !this.config_closing
+                    && this.select_tab_at(action.0, window, cx)
+                {
+                    this.focus.focus(window, cx);
+                }
+            }))
             .on_action(cx.listener(|_, _: &QaResize, window, cx| {
                 if crate::config::app_env("QA_FLOATING").as_deref()
                     == Some(std::ffi::OsStr::new("1"))
@@ -1156,14 +1202,6 @@ impl Render for AppWindow {
                     window.resize(next);
                     cx.notify();
                 }
-            }))
-            .on_action(
-                cx.listener(|this, _: &NextValue, window, cx| {
-                    this.navigate_field(false, window, cx)
-                }),
-            )
-            .on_action(cx.listener(|this, _: &PreviousValue, window, cx| {
-                this.navigate_field(true, window, cx)
             }))
             .child(title)
             .when(show_tabs, |this| {
