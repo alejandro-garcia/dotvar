@@ -21,7 +21,7 @@ use gpui_kit::component::{
 use gpui_kit::{prelude::FluentBuilder, *};
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, HashSet, VecDeque},
     path::PathBuf,
     rc::Rc,
     sync::{Arc, Mutex},
@@ -256,6 +256,7 @@ pub struct AppWindow {
     error: Option<UiError>,
     opening: bool,
     open_request: u64,
+    pending_external_files: VecDeque<PathBuf>,
     focus: FocusHandle,
     editor: Option<ActiveEditor>,
     dialog: Option<RenameDialog>,
@@ -333,6 +334,7 @@ impl AppWindow {
             error: None,
             opening: true,
             open_request: 0,
+            pending_external_files: VecDeque::new(),
             focus: cx.focus_handle(),
             editor: None,
             dialog: None,
@@ -1052,6 +1054,20 @@ impl Render for AppWindow {
             .text_color(rgb(0xe7e5e4))
             .font_family(design::UI_FONT)
             .track_focus(&self.focus)
+            .on_drag_move(|event: &DragMoveEvent<ExternalPaths>, window, cx| {
+                // GPUI's file drag events leave keyboard modality enabled,
+                // which disables the hover hit test used by on_drop.
+                if window.last_input_was_keyboard() {
+                    let mut motion = event.event.clone();
+                    motion.pressed_button = None;
+                    window.defer(cx, move |window, cx| {
+                        window.dispatch_event(PlatformInput::MouseMove(motion), cx);
+                    });
+                }
+            })
+            .on_drop(cx.listener(|this, paths: &ExternalPaths, window, cx| {
+                this.open_external_files(paths.paths().iter().cloned(), window, cx);
+            }))
             .capture_action(
                 cx.listener(|this, _: &gpui_kit::base::actions::Cancel, window, cx| {
                     if this.palette.is_some() {

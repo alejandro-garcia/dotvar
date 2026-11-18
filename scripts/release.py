@@ -146,7 +146,7 @@ def release_files(tag, sha, signing):
         else:
             dmg = destination / DMG
             subprocess.run(["xcrun", "stapler", "validate", dmg], check=True)
-            packager.verify_dmg(dmg, work / "mount")
+            packager.verify_dmg(dmg, work / "mount", ROOT)
     files = {name: destination / name for name in (DMG, CHECKSUM)}
     require(files[CHECKSUM].read_text() == f"{sha256(files[DMG])}  {DMG}\n", "Local release checksum mismatch.")
     return files

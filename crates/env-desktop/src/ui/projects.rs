@@ -5,6 +5,12 @@ use crate::{
     session::ExternalUpdate,
 };
 
+enum OpenPathKind {
+    FileOrFolder,
+    Folder,
+    EnvFile,
+}
+
 impl AppWindow {
     pub(super) fn select_project(
         &mut self,
@@ -27,7 +33,7 @@ impl AppWindow {
         self.active_project = index;
         self.focus.focus(window, cx);
         if let Some((root, id)) = reopen {
-            self.open_path(root, true, Some(id), cx);
+            self.open_path(root, OpenPathKind::Folder, Some(id), cx);
         } else {
             self.load_active(cx);
             self.persist(cx);
@@ -90,8 +96,8 @@ impl AppWindow {
                 this.opening = false;
                 this.start_watcher(cx);
                 if let Some(path) = initial {
-                    this.open_path(path, false, None, cx);
-                } else {
+                    this.open_path(path, OpenPathKind::FileOrFolder, None, cx);
+                } else if !this.open_next_external_file(cx) {
                     this.load_active(cx);
                     this.refresh_watches(cx);
                 }
@@ -179,10 +185,15 @@ impl AppWindow {
                 .into(),
             ),
         });
+        let kind = if directory {
+            OpenPathKind::Folder
+        } else {
+            OpenPathKind::FileOrFolder
+        };
         cx.spawn(async move |this, cx| match receiver.await {
             Ok(Ok(Some(paths))) => {
                 if let Some(path) = paths.into_iter().next() {
-                    let _ = this.update(cx, |this, cx| this.open_path(path, directory, None, cx));
+                    let _ = this.update(cx, |this, cx| this.open_path(path, kind, None, cx));
                 }
             }
             Ok(Ok(None)) => {}
@@ -195,10 +206,44 @@ impl AppWindow {
         })
         .detach();
     }
+
+    pub(crate) fn open_external_files(
+        &mut self,
+        paths: impl IntoIterator<Item = PathBuf>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.dialog.is_some() || self.closing || self.config_closing {
+            return;
+        }
+        let previous_len = self.pending_external_files.len();
+        self.pending_external_files
+            .extend(paths.into_iter().filter(|path| model::is_env_file(path)));
+        if self.pending_external_files.len() == previous_len {
+            return;
+        }
+        self.close_palette(window, cx);
+        self.finish_editor(false, window, cx);
+        self.cancel_tab_name_edit(window, cx);
+        self.notice = None;
+        self.focus.focus(window, cx);
+        self.open_next_external_file(cx);
+    }
+
+    fn open_next_external_file(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.opening
+            && let Some(path) = self.pending_external_files.pop_front()
+        {
+            self.open_path(path, OpenPathKind::EnvFile, None, cx);
+            return true;
+        }
+        false
+    }
+
     fn open_path(
         &mut self,
         path: PathBuf,
-        directory: bool,
+        kind: OpenPathKind,
         reopening_project: Option<u64>,
         cx: &mut Context<Self>,
     ) {
@@ -215,7 +260,12 @@ impl AppWindow {
                     .map_err(|_| UiError::Message("project.resolve_path_failed"))?
                     .join(path)
             };
-            let directory = directory || path.is_dir();
+            let directory = match kind {
+                OpenPathKind::FileOrFolder => path.is_dir(),
+                OpenPathKind::Folder => true,
+                OpenPathKind::EnvFile if path.is_file() => false,
+                OpenPathKind::EnvFile => return Err(UiError::Message("file.invalid_existing")),
+            };
             let root = if directory {
                 std::fs::canonicalize(&path)
                     .map_err(|_| UiError::Message("project.folder_inaccessible"))?
@@ -256,6 +306,7 @@ impl AppWindow {
                         .get(this.active_project)
                         .is_some_and(|p| p.id == *id && p.root == *root)
                 {
+                    this.open_next_external_file(cx);
                     cx.notify();
                     return;
                 }
@@ -317,6 +368,7 @@ impl AppWindow {
                         this.refresh_watches(cx);
                     }
                 }
+                this.open_next_external_file(cx);
                 cx.notify();
             });
         })

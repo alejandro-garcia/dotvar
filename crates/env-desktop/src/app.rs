@@ -1,6 +1,7 @@
 use crate::i18n::tr;
 use gpui_kit::component::{Theme, ThemeMode, TitleBar};
 use gpui_kit::*;
+use std::path::PathBuf;
 
 pub(crate) const BUNDLE_ID: &str = "com.dotvar.app";
 
@@ -38,10 +39,11 @@ actions!(
 );
 
 /// Native entry point. An optional path is explicit user input, never a fixture default.
-pub fn run(initial_path: Option<std::path::PathBuf>) {
+pub fn run(initial_path: Option<PathBuf>) {
     let started = std::time::Instant::now();
     let preferences = crate::settings::AppSettings::load();
-    application()
+    let (file_opens, pending_file_opens) = async_channel::unbounded::<Vec<PathBuf>>();
+    application_with_file_open_events(file_opens)
         .with_assets(crate::design::Assets)
         .run(move |cx| {
             init(cx);
@@ -129,6 +131,23 @@ pub fn run(initial_path: Option<std::path::PathBuf>) {
                         cx.quit();
                         return;
                     }
+                    let weak = view.downgrade();
+                    cx.spawn(async move |cx| {
+                        while let Ok(paths) = pending_file_opens.recv().await {
+                            let opened = cx.update(|cx| {
+                                handle.update(cx, |_, window, cx| {
+                                    let _ = weak.update(cx, |this, cx| {
+                                        this.open_external_files(paths, window, cx);
+                                    });
+                                    window.activate_window();
+                                })
+                            });
+                            if opened.is_err() {
+                                break;
+                            }
+                        }
+                    })
+                    .detach();
                     if crate::config::app_env("QA_FLOATING").as_deref()
                         == Some(std::ffi::OsStr::new("1"))
                     {
@@ -142,6 +161,26 @@ pub fn run(initial_path: Option<std::path::PathBuf>) {
                 }
             }
         });
+}
+
+fn application_with_file_open_events(
+    file_opens: async_channel::Sender<Vec<PathBuf>>,
+) -> Application {
+    let app = application();
+    // Finder can deliver an open event before the main window is ready.
+    app.on_open_urls(move |urls| {
+        let paths: Vec<_> = urls
+            .into_iter()
+            .filter_map(|url| url::Url::parse(&url).ok())
+            .filter(|url| url.scheme() == "file")
+            .filter_map(|url| url.to_file_path().ok())
+            .filter(|path| crate::model::is_env_file(path))
+            .collect();
+        if !paths.is_empty() {
+            let _ = file_opens.try_send(paths);
+        }
+    });
+    app
 }
 
 pub(crate) fn set_menus(cx: &mut App) {

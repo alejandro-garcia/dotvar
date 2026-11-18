@@ -11,6 +11,7 @@ import plistlib
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -146,6 +147,13 @@ def create_app(app, executable, root, version, identity):
             "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": version,
             "CFBundleVersion": version,
+            "CFBundleDocumentTypes": [{
+                "CFBundleTypeName": "Dotenv file",
+                "CFBundleTypeRole": "Editor",
+                # A bare .env and names like .env.local have no common macOS extension.
+                "CFBundleTypeExtensions": ["*"],
+                "LSHandlerRank": "None",
+            }],
             "LSMinimumSystemVersion": MINIMUM_MACOS,
             "NSHighResolutionCapable": True,
         }, plist)
@@ -173,7 +181,18 @@ def notarize(dmg, credentials):
     subprocess.run(["xcrun", "stapler", "validate", dmg], check=True)
 
 
-def verify_dmg(dmg, mountpoint):
+def run_dmg_layout(root, work, *arguments):
+    scripts = root / "scripts"
+    environment = work / "dmg-tools"
+    python = environment / "bin" / "python"
+    if not python.exists():
+        subprocess.run([sys.executable, "-m", "venv", environment], check=True)
+        subprocess.run([python, "-m", "pip", "install", "--disable-pip-version-check",
+                        "-r", scripts / "dmg-requirements.txt"], check=True)
+    subprocess.run([python, scripts / "dmg-layout.py", *arguments], check=True)
+
+
+def verify_dmg(dmg, mountpoint, root):
     subprocess.run(["codesign", "--verify", "--strict", dmg], check=True)
     subprocess.run(["spctl", "--assess", "--type", "open", "--context", "context:primary-signature",
                     "--verbose=2", dmg], check=True)
@@ -182,6 +201,7 @@ def verify_dmg(dmg, mountpoint):
     try:
         if (mountpoint / "Applications").readlink() != Path("/Applications"):
             raise SystemExit("The DMG is missing the Applications installation link.")
+        run_dmg_layout(root, mountpoint.parent, "verify", mountpoint)
         app = mountpoint / APP_NAME
         subprocess.run(["codesign", "--verify", "--deep", "--strict", app], check=True)
         subprocess.run(["xcrun", "lipo", "-verify_arch", "arm64", app / "Contents/MacOS/dotvar"], check=True)
@@ -190,18 +210,19 @@ def verify_dmg(dmg, mountpoint):
         subprocess.run(["hdiutil", "detach", mountpoint], check=True, stdout=subprocess.DEVNULL)
 
 
-def create_distribution(work, source, version, identity, credentials):
+def create_distribution(work, app, root, version, identity, credentials):
     name = f"Dotvar-{version}-macOS-arm64"
     release = work / name
     release.mkdir()
     dmg = release / f"{name}.dmg"
-    (source / "Applications").symlink_to("/Applications")
-    subprocess.run(["hdiutil", "create", "-srcfolder", source, "-volname", "Dotvar",
-                    "-format", "UDZO", dmg], check=True)
+    background = work / "background.tiff"
+    subprocess.run(["swift", root / "scripts" / "generate-dmg-background.swift",
+                    root / "assets" / "logo-complete.svg", background], check=True)
+    run_dmg_layout(root, work, "build", app, background, dmg)
     subprocess.run(["codesign", "--sign", identity, "--timestamp", "--identifier", f"{BUNDLE_ID}.dmg",
                     dmg], check=True)
     notarize(dmg, credentials)
-    verify_dmg(dmg, work / "mount")
+    verify_dmg(dmg, work / "mount", root)
     checksum = subprocess.check_output(["shasum", "-a", "256", dmg.name], cwd=release, text=True)
     (release / f"{dmg.name}.sha256").write_text(checksum)
     return release
@@ -237,12 +258,11 @@ def package(root, output, signing=None):
     output.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".dotvar-", dir=output) as directory:
         work = Path(directory)
-        source = work / "volume"
-        app = source / APP_NAME
+        app = work / APP_NAME
         create_app(app, executable, root, version, identity)
         result = app
         if credentials:
-            result = create_distribution(work, source, version, identity, credentials)
+            result = create_distribution(work, app, root, version, identity, credentials)
         destination = install_result(result, output, work)
     return destination / f"{destination.name}.dmg" if credentials else destination
 

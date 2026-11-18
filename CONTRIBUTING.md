@@ -56,6 +56,8 @@ The script builds the arm64 release with the macOS 15 deployment target, remaps 
 
 For maintainers preparing a distribution build, `python3 scripts/package-macos.py --distribution` uses a Developer ID Application certificate and a `notarytool` profile in the local Keychain. Set `NOTARY_PROFILE` or store `notary_profile` in the ignored `local/release.json`. If multiple certificates are available, `SIGN_IDENTITY` selects the certificate by fingerprint. `NOTARY_KEYCHAIN` selects an alternate Keychain. The script signs, notarizes, and validates the DMG, then writes it and a SHA-256 checksum under `dist/`.
 
+Distribution builds use AppKit to render the Retina installer background and pinned Python tools to write and validate the Finder layout. The tools install in a temporary virtual environment, which requires access to PyPI.
+
 Distribution builds put license texts and a dependency index under `Dotvar.app/Contents/Resources/Licenses`. Review `docs/dependency-license-supplements.txt` when upgrading dependencies and check packaged artifacts for local metadata before publishing. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Publish a GitHub release

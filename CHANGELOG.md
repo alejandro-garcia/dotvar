@@ -6,6 +6,10 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+### Changed
+
+- The macOS disk image opens with a Dotvar-themed drag-to-install window.
+
 ## [0.1.0] - 2026-11-17
 
 ### Added

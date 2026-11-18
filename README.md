@@ -16,6 +16,12 @@ Dotvar is a blazing-fast, privacy-first `.env` editor for macOS. Keep your proje
 - 📋 **Copy just what you need.** Copy one value or the entire working file, including valid unsaved edits.
 - 🔄 **Catch changes from other tools.** Dotvar reloads files as they change on disk and flags conflicts when you have unsaved edits, so you can resolve the conflict or save a separate copy.
 
+## Resource usage vs. VS Code
+
+![Dotvar used 93% less memory at idle, 92% less peak memory while editing, up to 54% less CPU time while editing, and 97% less disk space for the installed app than VS Code.](assets/resource-benchmark.png)
+
+Each pair of bars uses VS Code as the 100% baseline. The benchmark ran on an M2 Mac mini with Dotvar 0.1.0 and VS Code 1.146.0, using one `.env` file with 200 or 5,000 variables. The CPU bars show the 200-variable case, and idle memory was measured with the window hidden. VS Code ran with a clean profile, user extensions disabled, and built-in AI off. [Results and methodology](docs/resource-benchmark.md)
+
 ## Built with Rust and GPUI
 
 - **Rust** gives the file editor a memory-safe foundation. Each edit updates only the relevant bytes, keeping the rest of the file intact.
