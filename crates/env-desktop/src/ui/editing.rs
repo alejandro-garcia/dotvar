@@ -141,6 +141,31 @@ impl AppWindow {
         self.begin_field_editor(tab_id, EditorTarget::Text(field), caret, window, cx);
     }
 
+    pub(super) fn add_comment(&mut self, tab_id: u64, window: &mut Window, cx: &mut Context<Self>) {
+        if self.dialog.is_some()
+            || self.closing
+            || self.active_tab().map(|tab| tab.id) != Some(tab_id)
+        {
+            return;
+        }
+        self.finish_editor(false, window, cx);
+        let Some(tab) = self.tab_mut(tab_id) else {
+            return;
+        };
+        let Some(session) = tab.content.as_mut() else {
+            return;
+        };
+        match session.add_comment() {
+            Ok(field) => {
+                tab.sync_document_list();
+                self.error = None;
+                self.notice = None;
+                self.begin_text_editor(tab_id, field, None, window, cx);
+            }
+            Err(error) => self.show_session_error(error, window, cx),
+        }
+    }
+
     fn begin_field_editor(
         &mut self,
         tab_id: u64,

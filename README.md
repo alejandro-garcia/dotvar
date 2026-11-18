@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="96" height="96" alt="Dotvar app icon">
+  <img src="assets/og-image.png" alt="Dotvar — Your .env files, under control. Preview of the macOS editor.">
 </p>
 
 # Dotvar

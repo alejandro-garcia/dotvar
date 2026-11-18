@@ -1,5 +1,5 @@
 use env_core::{
-    BlockKind, Document, EditError, EntryId, HISTORY_MAX_BYTES, HISTORY_MAX_OPERATIONS,
+    BlockKind, Document, EditError, EntryId, HISTORY_MAX_BYTES, HISTORY_MAX_OPERATIONS, TextField,
 };
 
 fn ids(document: &Document) -> Vec<EntryId> {
@@ -392,6 +392,43 @@ fn adding_respects_eof_bom_and_predominant_line_ending() {
         assert_eq!(document.bytes(), expected);
         assert_eq!(value(&document, id), "value");
     }
+}
+
+#[test]
+fn adding_a_comment_preserves_source_and_creates_an_editable_undoable_block() {
+    let cases: &[(&[u8], &[u8])] = &[
+        (b"", b"# \n"),
+        (b"\xef\xbb\xbf", b"\xef\xbb\xbf# \n"),
+        (b"A=one", b"A=one\n# "),
+        (b"A=one\r\n# before", b"A=one\r\n# before\r\n# "),
+        (b"A=one\r\n", b"A=one\r\n# \r\n"),
+    ];
+    for &(source, expected) in cases {
+        let mut document = Document::from_bytes(source.to_vec());
+        let index = document.blocks().len();
+        let previous_ids = ids(&document);
+        assert_eq!(document.add_comment(0), Ok(index));
+        assert_eq!(document.bytes(), expected);
+        assert_eq!(ids(&document), previous_ids);
+        let comment = TextField::Comment(index);
+        assert!(document.set_text_field(comment, " Nota", 1).unwrap());
+        assert_eq!(
+            document.text(document.text_field_range(comment).unwrap()),
+            Some(" Nota")
+        );
+        assert!(document.undo());
+        assert_eq!(document.bytes(), expected);
+        assert!(document.undo());
+        assert_eq!(document.bytes(), source);
+        assert!(document.redo());
+        assert_eq!(document.bytes(), expected);
+    }
+
+    let source = b"A=\"unclosed";
+    let mut document = Document::from_bytes(source.to_vec());
+    assert_eq!(document.add_comment(0), Err(EditError::UnsafeBoundary));
+    assert_eq!(document.bytes(), source);
+    assert!(!document.can_undo());
 }
 
 #[test]

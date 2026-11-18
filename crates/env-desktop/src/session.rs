@@ -98,6 +98,7 @@ pub enum SessionError {
     Edit { entry: EntryId, error: EditError },
     TextEdit { field: TextField, error: EditError },
     NewVariable(EditError),
+    NewComment(EditError),
     Reorder(EditError),
     Busy,
     StaleRenameTarget,
@@ -111,6 +112,7 @@ impl fmt::Display for SessionError {
             Self::Edit { error, .. }
             | Self::TextEdit { error, .. }
             | Self::NewVariable(error)
+            | Self::NewComment(error)
             | Self::Reorder(error) => edit_error_message(error),
             Self::Busy => tr!("session.busy"),
             Self::StaleRenameTarget => tr!("edit_error.stale_revision"),
@@ -590,6 +592,13 @@ impl DocumentSession {
         self.new_variable.as_ref()
     }
 
+    pub fn add_comment(&mut self) -> Result<TextField, SessionError> {
+        self.document
+            .add_comment(self.document.revision())
+            .map(TextField::Comment)
+            .map_err(SessionError::NewComment)
+    }
+
     pub fn begin_new_variable(&mut self, quote_style: QuoteStyle) -> bool {
         if self.document.is_read_only() || self.new_variable.is_some() {
             return false;
@@ -783,6 +792,31 @@ mod tests {
             reopened.document.bytes(),
             b"# before\r\nA='pending' # tail\r\nB=two\r\n"
         );
+    }
+
+    #[test]
+    fn adding_a_comment_keeps_the_variable_draft_and_saves_both() {
+        let source = b"# before\r\nA=one\r\n";
+        let (dir, mut session) = quoted_session(source);
+        let path = dir.path().join(".env");
+        assert!(session.begin_new_variable(QuoteStyle::Unquoted));
+        session.update_new_variable("B".into(), "two".into(), QuoteStyle::Unquoted);
+
+        let field = session.add_comment().unwrap();
+        assert_eq!(field, TextField::Comment(2));
+        assert_eq!(session.field_text(field), Some(" "));
+        assert_eq!(session.new_variable().unwrap().name, "B");
+        assert_eq!(std::fs::read(&path).unwrap(), source);
+
+        session.set_text_draft(field, " Nota".into()).unwrap();
+        let save = session.prepare_save(false).unwrap().unwrap();
+        let baseline = storage::save(&save.baseline, &save.bytes).unwrap();
+        session.complete_save(&save, baseline).unwrap();
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            b"# before\r\nA=one\r\n# Nota\r\nB=two\r\n"
+        );
+        assert!(!session.is_dirty());
     }
 
     #[test]

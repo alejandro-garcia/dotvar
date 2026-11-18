@@ -3,7 +3,7 @@ use crate::i18n::{diagnostic_message, edit_error_message, tr};
 use crate::session::QuoteStyle;
 use env_core::{BlockKind, TextField};
 use gpui_kit::component::{
-    Icon, InteractiveElementExt, Size, ThemeStyled,
+    Icon, IconName, InteractiveElementExt, Size, ThemeStyled,
     input::{Escape, Input, Textarea, TextareaState},
     scroll::{ScrollableMask, Scrollbar, ScrollbarMode},
 };
@@ -252,7 +252,7 @@ fn value_editor_frame(
 }
 
 impl AppWindow {
-    fn add_variable_row(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn add_row(&self, tab_id: u64, cx: &mut Context<Self>) -> AnyElement {
         const DISPLAY_FONT: &str = "SF Pro Display";
         static HAS_DISPLAY_FONT: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
         let has_display_font = *HAS_DISPLAY_FONT.get_or_init(|| {
@@ -262,33 +262,84 @@ impl AppWindow {
                 .any(|name| name == DISPLAY_FONT)
         });
         let label = tr!("variable.add");
+        let options_label = tr!("editor.add_options");
+        let comment_label = tr!("editor.add_comment");
+        let owner = cx.weak_entity();
+        let segment_height = px(design::FIELD_HEIGHT - 2.);
+        let variable = Button::new("add-variable")
+            .ghost()
+            .h(segment_height)
+            .border_0()
+            .rounded_none()
+            .rounded_l(px(5.))
+            .text_color(rgb(design::TAB_TEXT_ACTIVE))
+            .accessibility_label(label.clone())
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(10.))
+                    .child(design::asset(Asset::AddVariable))
+                    .child(
+                        div()
+                            .when(has_display_font, |this| this.font_family(DISPLAY_FONT))
+                            .text_size(px(14.))
+                            .line_height(px(17.))
+                            .font_weight(FontWeight::MEDIUM)
+                            .child(label),
+                    ),
+            )
+            .on_click(cx.listener(|this, _, window, cx| this.begin_new_variable(window, cx)));
+        let options = Button::new("add-row-menu")
+            .ghost()
+            .w(segment_height)
+            .h(segment_height)
+            .p_0()
+            .border_0()
+            .rounded_none()
+            .rounded_r(px(5.))
+            .accessibility_label(options_label.clone())
+            .tooltip(options_label)
+            .child(
+                Icon::new(IconName::ChevronDown)
+                    .with_size(Size::Small)
+                    .text_color(rgb(design::TAB_TEXT_ACTIVE)),
+            )
+            .dropdown_menu_with_anchor(Anchor::TopRight, move |menu, _, _| {
+                let owner = owner.clone();
+                menu.item(
+                    PopupMenuItem::new(comment_label.clone())
+                        .icon(variable_menu_icon(include_bytes!(
+                            "../../assets/design/comment.svg"
+                        )))
+                        .on_click(move |_, window, cx| {
+                            let _ = owner.update(cx, |this, cx| {
+                                this.add_comment(tab_id, window, cx);
+                            });
+                        }),
+                )
+            });
         div()
             .flex()
             .items_start()
             .child(
-                Button::new("add-variable")
-                    .text()
-                    .h(px(design::FIELD_HEIGHT))
-                    .text_color(rgb(SECONDARY))
-                    .accessibility_label(label.clone())
+                div()
+                    .id("add-row")
+                    .role(Role::Group)
+                    .flex()
+                    .items_center()
+                    .bg(rgb(WINDOW_BG))
+                    .border_1()
+                    .border_color(rgb(design::SELECTOR_BG))
+                    .rounded(px(6.))
+                    .child(variable)
                     .child(
                         div()
-                            .flex()
-                            .items_center()
-                            .gap(px(10.))
-                            .child(design::asset(Asset::AddVariable))
-                            .child(
-                                div()
-                                    .when(has_display_font, |this| this.font_family(DISPLAY_FONT))
-                                    .text_size(px(14.))
-                                    .line_height(px(17.))
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .child(label),
-                            ),
+                            .w(px(1.))
+                            .h(segment_height)
+                            .bg(rgb(design::SELECTOR_BG)),
                     )
-                    .on_click(
-                        cx.listener(|this, _, window, cx| this.begin_new_variable(window, cx)),
-                    ),
+                    .child(options),
             )
             .into_any_element()
     }
@@ -904,7 +955,7 @@ impl AppWindow {
                                     } else if has_draft && index == count {
                                         this.new_variable_view(id, window, cx)
                                     } else {
-                                        this.add_variable_row(cx)
+                                        this.add_row(id, cx)
                                     };
                                     this.keyboard_document_row(id, index, row, window, cx)
                                 }),

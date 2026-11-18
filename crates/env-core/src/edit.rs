@@ -434,26 +434,10 @@ impl Document {
             .checked_add(1)
             .ok_or(EditError::IdentityExhausted)?;
         let id = EntryId(self.next_id);
-        let empty = self.bytes.len() == usize::from(self.has_bom()) * 3;
-        let newline = predominant_newline(&self.bytes);
-        let needs_separator = !empty && !self.bytes.ends_with(b"\n");
-        let preserve_final_newline = empty || self.bytes.ends_with(b"\n");
-        let mut replacement = Vec::new();
-        if needs_separator {
-            replacement.extend_from_slice(newline);
-        }
-        let assignment_start = self.bytes.len() + replacement.len();
-        replacement.extend_from_slice(name.as_bytes());
-        replacement.push(b'=');
-        replacement.extend_from_slice(token.as_bytes());
-        if preserve_final_newline {
-            replacement.extend_from_slice(newline);
-        }
-        let candidate = self.patch(self.bytes.len()..self.bytes.len(), replacement);
-        self.check_appended_blocks(
-            &candidate,
-            1,
-            if needs_separator { newline.len() } else { 0 },
+        let (candidate, assignment_start) = self.append_block_candidate(
+            name.bytes()
+                .chain(std::iter::once(b'='))
+                .chain(token.bytes()),
         )?;
         let added = assignment(candidate.blocks.last().ok_or(EditError::UnsafeBoundary)?)
             .ok_or(EditError::UnsafeBoundary)?;
@@ -470,6 +454,41 @@ impl Document {
         self.commit(candidate, ids)?;
         self.next_id = next_id;
         Ok(id)
+    }
+
+    /// Appends an empty standalone comment and returns its block index.
+    pub fn add_comment(&mut self, expected_revision: u64) -> Result<usize, EditError> {
+        self.require_revision(expected_revision)?;
+        let (candidate, start) = self.append_block_candidate(b"# ".iter().copied())?;
+        let index = self.blocks.len();
+        let block = &candidate.blocks[index];
+        if block.range.start != start || !matches!(block.kind, BlockKind::Comment) {
+            return Err(EditError::UnsafeBoundary);
+        }
+        self.commit(candidate, self.entry_ids())?;
+        Ok(index)
+    }
+
+    fn append_block_candidate(
+        &self,
+        source: impl IntoIterator<Item = u8>,
+    ) -> Result<(Candidate, usize), EditError> {
+        let newline = predominant_newline(&self.bytes);
+        let empty = self.bytes.len() == usize::from(self.has_bom()) * 3;
+        let final_newline = empty || self.bytes.ends_with(b"\n");
+        let mut replacement = Vec::new();
+        if !final_newline {
+            replacement.extend_from_slice(newline);
+        }
+        let separator_len = replacement.len();
+        replacement.extend(source);
+        if final_newline {
+            replacement.extend_from_slice(newline);
+        }
+        let end = self.bytes.len();
+        let candidate = self.patch(end..end, replacement);
+        self.check_appended_blocks(&candidate, 1, separator_len)?;
+        Ok((candidate, end + separator_len))
     }
 
     /// Append a parsed dotenv fragment as a single undoable edit. Keep its

@@ -121,6 +121,8 @@
   },
   "editor": {
     "comment": "Comentario",
+    "add_comment": "Agregar comentario",
+    "add_options": "Opciones para agregar",
     "edit_name": "Editar nombre de la variable",
     "edit_comment": "Editar comentario",
     "move_comment": "Mover comentario",
