@@ -3,6 +3,7 @@
 /.qa/
 /local/
 /plans/
+/advisor-plans/
 .AppleDouble
 .DS_Store
 *.log
