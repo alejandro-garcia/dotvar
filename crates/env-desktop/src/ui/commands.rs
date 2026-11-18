@@ -10,7 +10,7 @@ impl AppWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.dialog.is_some() {
+        if self.dialog.is_some() || self.file_trash.is_some() {
             return;
         }
         self.finish_editor(false, window, cx);
@@ -76,6 +76,9 @@ impl AppWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.file_trash.is_some() {
+            return;
+        }
         let aliases: Vec<_> = self
             .projects
             .iter()
@@ -373,7 +376,7 @@ impl AppWindow {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.closing || self.config_closing {
+        if self.closing || self.config_closing || self.file_trash.is_some() {
             return;
         }
         if self.creating_file.is_some() && !matches!(target, CloseTarget::Tab { .. }) {

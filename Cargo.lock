@@ -1432,11 +1432,11 @@ dependencies = [
 
 [[package]]
 name = "env-core"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "env-desktop"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-channel",
  "env-core",
@@ -1444,6 +1444,7 @@ dependencies = [
  "notify",
  "objc2 0.6.5",
  "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
  "resvg 0.45.1",
  "rust-i18n",
  "rustix",

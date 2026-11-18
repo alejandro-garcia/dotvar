@@ -532,6 +532,33 @@ fn remove_keeps_previous_comments_and_inline_comment_as_independent_line() {
 }
 
 #[test]
+fn remove_comment_preserves_other_blocks_and_undo_restores_the_original_bytes() {
+    let source = b"\xef\xbb\xbfA=one # inline\r\n \t# remove\r\n# keep\nB=two\r\n# final";
+    let mut document = Document::from_bytes(source.to_vec());
+    let entries = ids(&document);
+    assert_eq!(
+        document.remove_comment(0, 0),
+        Err(EditError::UnsafeBoundary)
+    );
+    assert!(document.remove_comment(1, 0).unwrap());
+    let remaining = b"\xef\xbb\xbfA=one # inline\r\n# keep\nB=two\r\n# final";
+    assert_eq!(document.bytes(), remaining);
+    assert_eq!(ids(&document), entries);
+    assert!(matches!(
+        document.remove_comment(1, 0),
+        Err(EditError::StaleRevision { .. })
+    ));
+    assert!(document.undo());
+    assert_eq!(document.bytes(), source);
+    assert!(document.redo());
+    assert_eq!(document.bytes(), remaining);
+
+    let mut document = Document::from_bytes(b"\xef\xbb\xbf# final".to_vec());
+    assert!(document.remove_comment(0, 0).unwrap());
+    assert_eq!(document.bytes(), b"\xef\xbb\xbf");
+}
+
+#[test]
 fn remove_final_assignment_preserves_bom_and_its_final_comment_without_newline() {
     let mut document = Document::from_bytes(b"\xef\xbb\xbf A=token # final".to_vec());
     let id = ids(&document)[0];

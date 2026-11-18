@@ -613,6 +613,23 @@ impl Document {
         Ok(())
     }
 
+    /// Removes a standalone comment, including its line ending, as one reversible edit.
+    pub fn remove_comment(
+        &mut self,
+        index: usize,
+        expected_revision: u64,
+    ) -> Result<bool, EditError> {
+        self.require_revision(expected_revision)?;
+        if !matches!(
+            self.blocks.get(index).map(|block| &block.kind),
+            Some(BlockKind::Comment)
+        ) {
+            return Err(EditError::UnsafeBoundary);
+        }
+        let candidate = self.remove_block_candidate(index, Vec::new())?;
+        self.commit(candidate, self.entry_ids())
+    }
+
     pub fn remove_entry(&mut self, id: EntryId, expected_revision: u64) -> Result<bool, EditError> {
         self.require_revision(expected_revision)?;
         let (index, block, entry) = self.find_entry(id)?;
@@ -626,7 +643,35 @@ impl Document {
             replacement.extend_from_slice(&self.bytes[comment.clone()]);
             replacement.extend_from_slice(&self.bytes[comment.end..block.range.end]);
         }
-        let keeps_comment = entry.inline_comment.is_some();
+        let candidate = self.remove_block_candidate(index, replacement)?;
+        let mut ids = self.entry_ids();
+        // An inline comment that looks like a variable becomes a commented
+        // assignment when it stands alone, with its own identity.
+        if !candidate.replacement.is_empty() && assignment(&candidate.blocks[index]).is_some() {
+            let next_id = self
+                .next_id
+                .checked_add(1)
+                .ok_or(EditError::IdentityExhausted)?;
+            let position = ids
+                .iter()
+                .position(|entry_id| *entry_id == id)
+                .expect("removed assignment has an ID");
+            ids[position] = EntryId(self.next_id);
+            let changed = self.commit(candidate, ids)?;
+            self.next_id = next_id;
+            return Ok(changed);
+        }
+        ids.retain(|entry_id| *entry_id != id);
+        self.commit(candidate, ids)
+    }
+
+    fn remove_block_candidate(
+        &self,
+        index: usize,
+        replacement: Vec<u8>,
+    ) -> Result<Candidate, EditError> {
+        let block = &self.blocks[index];
+        let keeps_comment = !replacement.is_empty();
         let candidate = self.patch(block.range.clone(), replacement);
         if candidate.blocks.len() != self.blocks.len() - usize::from(!keeps_comment) {
             return Err(EditError::UnsafeBoundary);
@@ -661,25 +706,7 @@ impl Document {
                 return Err(EditError::UnsafeBoundary);
             }
         }
-        let mut ids = self.entry_ids();
-        // An inline comment that looks like a variable becomes a commented
-        // assignment when it stands alone, with its own identity.
-        if keeps_comment && assignment(&candidate.blocks[index]).is_some() {
-            let next_id = self
-                .next_id
-                .checked_add(1)
-                .ok_or(EditError::IdentityExhausted)?;
-            let position = ids
-                .iter()
-                .position(|entry_id| *entry_id == id)
-                .expect("removed assignment has an ID");
-            ids[position] = EntryId(self.next_id);
-            let changed = self.commit(candidate, ids)?;
-            self.next_id = next_id;
-            return Ok(changed);
-        }
-        ids.retain(|entry_id| *entry_id != id);
-        self.commit(candidate, ids)
+        Ok(candidate)
     }
 
     pub fn can_undo(&self) -> bool {

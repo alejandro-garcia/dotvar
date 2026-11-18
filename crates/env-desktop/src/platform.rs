@@ -11,6 +11,29 @@
 
 #![allow(unsafe_code)]
 
+#[cfg(all(feature = "native", target_os = "macos"))]
+pub(crate) fn move_to_trash(path: &std::path::Path) -> Result<(), crate::storage::StorageError> {
+    use objc2::rc::autoreleasepool;
+    use objc2_foundation::{NSFileManager, NSURL};
+    use std::{ffi::CString, os::unix::ffi::OsStrExt, ptr::NonNull};
+
+    use crate::storage::StorageError;
+
+    let path = CString::new(path.as_os_str().as_bytes()).map_err(|_| StorageError::InvalidPath)?;
+    let path_ptr = NonNull::new(path.as_ptr().cast_mut()).ok_or(StorageError::InvalidPath)?;
+    autoreleasepool(|_| {
+        // SAFETY: the CString provides a valid, NUL-terminated filesystem path.
+        let url = unsafe {
+            NSURL::fileURLWithFileSystemRepresentation_isDirectory_relativeToURL(
+                path_ptr, false, None,
+            )
+        };
+        NSFileManager::new()
+            .trashItemAtURL_resultingItemURL_error(&url, None)
+            .map_err(|_| StorageError::TrashFailed)
+    })
+}
+
 #[cfg(target_os = "macos")]
 // The macos-quit feature also runs policy tests without the native app module.
 #[cfg_attr(not(feature = "native"), allow(dead_code))]

@@ -646,7 +646,12 @@ impl AppWindow {
             } else {
                 "tab.rename_unavailable"
             }))?;
-        if session.is_saving() || self.closing || self.config_closing || self.opening {
+        if session.is_saving()
+            || self.closing
+            || self.config_closing
+            || self.opening
+            || self.file_trash.is_some()
+        {
             return Err(UiError::Message("tab.rename_busy"));
         }
         if is_file_destination_taken(

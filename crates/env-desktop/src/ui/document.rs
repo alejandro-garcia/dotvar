@@ -180,8 +180,8 @@ fn variable_menu_icon(svg: &[u8]) -> Icon {
         .mr(px(4.))
 }
 
-fn delete_variable_menu_item() -> PopupMenuItem {
-    PopupMenuItem::new(tr!("variable.delete")).icon(variable_menu_icon(include_bytes!(
+pub(super) fn delete_menu_item(label: impl Into<SharedString>) -> PopupMenuItem {
+    PopupMenuItem::new(label.into()).icon(variable_menu_icon(include_bytes!(
         "../../assets/actions/variable-menu/trash-2.svg"
     )))
 }
@@ -374,9 +374,12 @@ impl AppWindow {
                 .child(design::asset(Asset::GenericNeutral)),
             move |menu, _, _| {
                 let discard = discard.clone();
-                menu.item(delete_variable_menu_item().on_click(move |_, window, cx| {
-                    let _ = discard.update(cx, |this, cx| this.cancel_new_variable(id, window, cx));
-                }))
+                menu.item(delete_menu_item(tr!("variable.delete")).on_click(
+                    move |_, window, cx| {
+                        let _ =
+                            discard.update(cx, |this, cx| this.cancel_new_variable(id, window, cx));
+                    },
+                ))
             },
             window,
             cx,
@@ -804,6 +807,15 @@ impl AppWindow {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         self.advance_row_drag(window, cx);
+        if self
+            .active_tab()
+            .is_some_and(|tab| self.moving_to_trash(tab.id))
+        {
+            return div()
+                .p_8()
+                .child(Label::new(tr!("file.trash_pending")))
+                .into_any_element();
+        }
         let root_focus = self.focus.clone();
         let Some(tab) = self.active_tab_mut() else {
             return div()
@@ -1333,11 +1345,15 @@ impl AppWindow {
                             }),
                         )
                         .separator()
-                        .item(delete_variable_menu_item().on_click(move |_, window, cx| {
-                            let _ = remove.update(cx, |this, cx| {
-                                this.remove_variable(tab_id, id, window, cx)
-                            });
-                        }))
+                        .item(
+                            delete_menu_item(tr!("variable.delete")).on_click(
+                                move |_, window, cx| {
+                                    let _ = remove.update(cx, |this, cx| {
+                                        this.remove_variable(tab_id, id, window, cx)
+                                    });
+                                },
+                            ),
+                        )
                     },
                     window,
                     cx,
@@ -1475,12 +1491,53 @@ impl AppWindow {
                     )
                     .into_any_element()
             }
-            BlockKind::Comment => div()
-                .flex()
-                .items_start()
-                .gap(px(10.))
-                .w_full()
-                .child(
+            BlockKind::Comment => {
+                let icon = design::asset(Asset::Comment);
+                let actions = if preview || document.is_read_only() {
+                    icon.into_any_element()
+                } else {
+                    let owner = cx.weak_entity();
+                    let label = tr!("editor.comment_actions");
+                    let menu = reorder::click_menu(
+                        format!("comment-menu-{tab_id}-{index}"),
+                        Button::new(("comment-actions", index))
+                            .ghost()
+                            .cursor(CursorStyle::OpenHand)
+                            .w(px(16.))
+                            .h(px(14.))
+                            .p_0()
+                            .border_0()
+                            .accessibility_label(label.clone())
+                            .tooltip(label)
+                            .child(icon),
+                        move |menu, window, cx| {
+                            let target = owner
+                                .update(cx, |this, cx| {
+                                    // Opening the popup blurs the text field. Commit its
+                                    // edit before capturing the row's revision.
+                                    this.finish_editor(false, window, cx);
+                                    this.active_tab()
+                                        .filter(|tab| tab.id == tab_id)
+                                        .and_then(|tab| tab.content.as_ref())
+                                        .map(|session| session.capture_comment_target(index))
+                                })
+                                .ok()
+                                .flatten();
+                            let Some(target) = target else {
+                                return menu;
+                            };
+                            let owner = owner.clone();
+                            menu.item(delete_menu_item(tr!("editor.delete_comment")).on_click(
+                                move |_, window, cx| {
+                                    let _ = owner.update(cx, |this, cx| {
+                                        this.remove_comment(tab_id, &target, window, cx);
+                                    });
+                                },
+                            ))
+                        },
+                        window,
+                        cx,
+                    );
                     self.drag_handle(
                         reorder::RowDrag {
                             tab: tab_id,
@@ -1488,12 +1545,18 @@ impl AppWindow {
                         },
                         cx,
                     )
-                    .role(Role::Button)
-                    .aria_label(tr!("editor.move_comment"))
-                    .child(design::asset(design::Asset::Comment)),
-                )
-                .child(self.inline_text_view(tab_id, TextField::Comment(index), "", window, cx))
-                .into_any_element(),
+                    .child(menu)
+                    .into_any_element()
+                };
+                div()
+                    .flex()
+                    .items_start()
+                    .gap(px(10.))
+                    .w_full()
+                    .child(actions)
+                    .child(self.inline_text_view(tab_id, TextField::Comment(index), "", window, cx))
+                    .into_any_element()
+            }
             BlockKind::Blank => div().h(px(6.)).into_any_element(),
             BlockKind::Opaque(diagnostic) => div()
                 .pl(px(27.))

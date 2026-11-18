@@ -38,12 +38,14 @@ mod projects;
 mod reorder;
 mod tab_drag;
 mod tab_rename;
+mod tab_trash;
 mod welcome;
 use editing::{ActiveEditor, EditorTarget, RenameDialog};
 use interaction::SearchBox;
 use new_variable::NewVariableRow;
 use palette::ProjectPalette;
 use tab_rename::{PendingFileCreation, TabNameEditor};
+use tab_trash::FileTrash;
 
 use design::{CONTENT_BG, KEY_COLOR, SECONDARY, WINDOW_BG};
 
@@ -300,6 +302,7 @@ pub struct AppWindow {
     dialog: Option<RenameDialog>,
     tab_name_editor: Option<TabNameEditor>,
     creating_file: Option<PendingFileCreation>,
+    file_trash: Option<FileTrash>,
     search: Option<SearchBox>,
     palette: Option<ProjectPalette>,
     notice: Option<&'static str>,
@@ -378,6 +381,7 @@ impl AppWindow {
             dialog: None,
             tab_name_editor: None,
             creating_file: None,
+            file_trash: None,
             search: None,
             palette: None,
             notice: None,
@@ -459,6 +463,9 @@ impl AppWindow {
         }
         let p = self.projects.get(self.active_project)?;
         let id = p.tabs.get(p.active)?.document;
+        if self.moving_to_trash(id) {
+            return None;
+        }
         self.tab_mut(id)
     }
     fn select_tab(&mut self, id: u64, window: &mut Window, cx: &mut Context<Self>) {
@@ -489,6 +496,9 @@ impl AppWindow {
         else {
             return;
         };
+        if self.moving_to_trash(reference.document) {
+            return;
+        }
         let Some(tab) = self.tab_mut(reference.document) else {
             return;
         };
@@ -852,11 +862,13 @@ impl Render for AppWindow {
                             let id = tab.id;
                             let close_hovered = self.hovered_close_tab == Some((project, id));
                             let close_path = reference.path.clone();
+                            let trash_path = reference.path.clone();
+                            let owner = cx.weak_entity();
                             let renaming = self
                                 .tab_name_editor
                                 .as_ref()
                                 .filter(|rename| rename.matches(project, &reference.path));
-                            BaseTab::new(("file-tab", index))
+                            let tab = BaseTab::new(("file-tab", index))
                                 .selected(selected)
                                 .set_position(index + 1, count)
                                 .accessibility_label(if tab.dirty() {
@@ -960,7 +972,8 @@ impl Render for AppWindow {
                                 }))
                                 .on_click(cx.listener(move |this, _, window, cx| {
                                     this.select_tab_at(index, window, cx);
-                                }))
+                                }));
+                            tab_trash::tab_menu(tab, project, id, trash_path, owner)
                         }),
                 )
                 .when_some(self.new_file_draft(), |tabs, draft| {

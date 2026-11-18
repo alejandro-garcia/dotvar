@@ -1,6 +1,6 @@
 use super::*;
 use crate::i18n::tr;
-use crate::session::{RenameTarget, SessionError};
+use crate::session::{CommentTarget, RenameTarget, SessionError};
 use env_core::{BlockKind, EditError, TextField};
 use gpui_kit::component::input::{Input, InputEvent, InputState, TextareaState};
 use std::cell::Cell;
@@ -795,6 +795,40 @@ impl AppWindow {
         match session.remove(entry) {
             // The menu's trigger disappears with the row, so keep shortcuts on the editor.
             Ok(()) => self.needs_root_focus = true,
+            Err(error) => self.show_session_error(error, window, cx),
+        }
+        cx.notify();
+    }
+
+    pub(super) fn remove_comment(
+        &mut self,
+        tab_id: u64,
+        target: &CommentTarget,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(tab) = self.active_tab().filter(|tab| tab.id == tab_id) else {
+            return;
+        };
+        if !tab
+            .content
+            .as_ref()
+            .is_some_and(|session| session.matches_comment_target(target))
+        {
+            self.error = Some(UiError::Message("edit_error.stale_revision"));
+            cx.notify();
+            return;
+        }
+        self.finish_editor(false, window, cx);
+        let Some(session) = self.tab_mut(tab_id).and_then(|tab| tab.content.as_mut()) else {
+            return;
+        };
+        match session.remove_comment(target.index) {
+            Ok(()) => {
+                self.error = None;
+                self.notice = None;
+                self.needs_root_focus = true;
+            }
             Err(error) => self.show_session_error(error, window, cx),
         }
         cx.notify();

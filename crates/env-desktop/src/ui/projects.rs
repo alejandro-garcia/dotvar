@@ -645,6 +645,10 @@ impl AppWindow {
                     .min(self.projects.len().saturating_sub(1));
             }
         }
+        self.finish_tab_removal(cx);
+    }
+
+    pub(super) fn finish_tab_removal(&mut self, cx: &mut Context<Self>) {
         let refs: HashSet<_> = self
             .projects
             .iter()
@@ -667,6 +671,9 @@ impl AppWindow {
         self.config_close_work = self.work_signature();
     }
     pub(super) fn locate_project(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.file_trash.is_some() {
+            return;
+        }
         if self.creating_file.is_some() {
             self.error = Some(UiError::Message("file.create_pending"));
             cx.notify();
@@ -718,6 +725,9 @@ impl AppWindow {
                 .await;
             let _ = handle.update(cx, |_, window, cx| {
                 let _ = this.update(cx, |this, cx| {
+                    if this.file_trash.is_some() {
+                        return;
+                    }
                     if this.creating_file.is_some() {
                         this.error = Some(UiError::Message("file.create_pending"));
                         cx.notify();
@@ -951,12 +961,16 @@ impl AppWindow {
             .projects
             .get(self.active_project)
             .map(|p| (p.id, p.root.clone()));
+        let moving = match self.file_trash {
+            Some(FileTrash::Moving(id)) => Some(id),
+            _ => None,
+        };
         let reads: Vec<_> = self
             .documents
             .values_mut()
             .filter_map(|t| {
                 let s = t.content.as_ref()?;
-                if s.is_saving() || t.rename_destination.is_some() {
+                if s.is_saving() || t.rename_destination.is_some() || moving == Some(t.id) {
                     return None;
                 }
                 t.read_epoch += 1;
@@ -969,7 +983,7 @@ impl AppWindow {
             .flat_map(|p| p.tabs.iter())
             .filter_map(|r| {
                 self.tab(r.document)
-                    .filter(|t| t.rename_destination.is_none())
+                    .filter(|t| t.rename_destination.is_none() && moving != Some(t.id))
                     .and_then(|t| t.content.as_ref())
                     .filter(|s| s.baseline.chosen_path != r.path)
                     .map(|s| (r.document, r.path.clone(), s.baseline.clone()))
@@ -1071,10 +1085,11 @@ impl AppWindow {
                     }
                 }
                 for (id, path, expected, result) in alias_results {
-                    if !this
-                        .projects
-                        .iter()
-                        .any(|p| p.tabs.iter().any(|r| r.document == id && r.path == path))
+                    if this.moving_to_trash(id)
+                        || !this
+                            .projects
+                            .iter()
+                            .any(|p| p.tabs.iter().any(|r| r.document == id && r.path == path))
                     {
                         continue;
                     }

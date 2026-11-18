@@ -99,6 +99,7 @@ pub enum SessionError {
     TextEdit { field: TextField, error: EditError },
     NewVariable(EditError),
     NewComment(EditError),
+    RemoveComment(EditError),
     Reorder(EditError),
     Busy,
     StaleRenameTarget,
@@ -113,6 +114,7 @@ impl fmt::Display for SessionError {
             | Self::TextEdit { error, .. }
             | Self::NewVariable(error)
             | Self::NewComment(error)
+            | Self::RemoveComment(error)
             | Self::Reorder(error) => edit_error_message(error),
             Self::Busy => tr!("session.busy"),
             Self::StaleRenameTarget => tr!("edit_error.stale_revision"),
@@ -147,6 +149,12 @@ pub enum ExternalUpdate {
 pub struct RenameTarget {
     document_identity: Arc<()>,
     entry: EntryId,
+}
+
+pub struct CommentTarget {
+    document_identity: Arc<()>,
+    revision: u64,
+    pub index: usize,
 }
 
 pub struct DocumentSession {
@@ -305,7 +313,19 @@ impl DocumentSession {
     }
 
     fn confirm_text_fields(&mut self) -> Result<(), SessionError> {
-        let fields: Vec<_> = self.text_drafts.keys().copied().collect();
+        self.confirm_text_fields_except(None)
+    }
+
+    fn confirm_text_fields_except(
+        &mut self,
+        except: Option<TextField>,
+    ) -> Result<(), SessionError> {
+        let fields: Vec<_> = self
+            .text_drafts
+            .keys()
+            .copied()
+            .filter(|field| Some(*field) != except)
+            .collect();
         let mut first_error = None;
         for field in fields {
             if let Err(error) = self.confirm_text_field(field) {
@@ -599,6 +619,30 @@ impl DocumentSession {
             .map_err(SessionError::NewComment)
     }
 
+    pub fn capture_comment_target(&self, index: usize) -> CommentTarget {
+        CommentTarget {
+            document_identity: self.document_identity.clone(),
+            revision: self.document.revision(),
+            index,
+        }
+    }
+
+    pub fn matches_comment_target(&self, target: &CommentTarget) -> bool {
+        Arc::ptr_eq(&self.document_identity, &target.document_identity)
+            && self.document.revision() == target.revision
+    }
+
+    pub fn remove_comment(&mut self, index: usize) -> Result<(), SessionError> {
+        let field = TextField::Comment(index);
+        // Resolve other row-indexed drafts before their positions change.
+        self.confirm_text_fields_except(Some(field))?;
+        self.document
+            .remove_comment(index, self.document.revision())
+            .map_err(SessionError::RemoveComment)?;
+        self.cancel_text_draft(field);
+        Ok(())
+    }
+
     pub fn begin_new_variable(&mut self, quote_style: QuoteStyle) -> bool {
         if self.document.is_read_only() || self.new_variable.is_some() {
             return false;
@@ -817,6 +861,34 @@ mod tests {
             b"# before\r\nA=one\r\n# Nota\r\nB=two\r\n"
         );
         assert!(!session.is_dirty());
+    }
+
+    #[test]
+    fn removing_a_comment_discards_its_draft_and_saves_other_edits() {
+        let source = b"# remove\r\n# keep\r\nA=one\r\n";
+        let (dir, mut session) = quoted_session(source);
+        let path = dir.path().join(".env");
+        let target = session.capture_comment_target(0);
+        session
+            .set_text_draft(TextField::Comment(0), " invalid\ncomment".into())
+            .unwrap();
+        session
+            .set_text_draft(TextField::Comment(1), " edited".into())
+            .unwrap();
+        assert!(session.matches_comment_target(&target));
+        session.remove_comment(target.index).unwrap();
+        assert!(!session.matches_comment_target(&target));
+        assert_eq!(session.field_text(TextField::Comment(0)), Some(" edited"));
+        assert_eq!(std::fs::read(&path).unwrap(), source);
+        let save = session.prepare_save(false).unwrap().unwrap();
+        let baseline = storage::save(&save.baseline, &save.bytes).unwrap();
+        session.complete_save(&save, baseline).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"# edited\r\nA=one\r\n");
+        assert!(session.undo().unwrap());
+        assert_eq!(
+            session.document.bytes(),
+            b"# remove\r\n# edited\r\nA=one\r\n"
+        );
     }
 
     #[test]

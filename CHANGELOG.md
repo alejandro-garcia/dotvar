@@ -6,6 +6,13 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-18
+
+### Added
+
+- Add and delete standalone comments in `.env` files, with undo and redo.
+- Move an `.env` file to the macOS Trash from its tab menu, with confirmation and a warning for unsaved changes.
+
 ## [0.2.0] - 2026-11-18
 
 ### Added
@@ -39,6 +46,7 @@ This file tracks notable changes to Dotvar. It follows
 - English and Spanish interface options, with a setting to follow the system language.
 - Signed and notarized macOS installer for Apple Silicon, with a SHA-256 checksum.
 
-[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.2.0...master
+[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.3.0...master
+[0.3.0]: https://github.com/nicoandrade/dotvar/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nicoandrade/dotvar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nicoandrade/dotvar/releases/tag/v0.1.0

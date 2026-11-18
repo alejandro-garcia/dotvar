@@ -90,6 +90,7 @@ pub enum StorageError {
     UnsupportedAccessMetadata,
     AlreadyExists,
     InvalidPath,
+    TrashFailed,
     /// Replacement/creation happened, but durability or read-back was not verified.
     Uncertain,
     /// The directory entry moved, but durability or read-back was not verified.
@@ -112,6 +113,7 @@ impl fmt::Display for StorageError {
             Self::UnsupportedAccessMetadata => tr!("storage.unsupported_access"),
             Self::AlreadyExists => tr!("storage.already_exists"),
             Self::InvalidPath => tr!("storage.invalid_path"),
+            Self::TrashFailed => tr!("storage.trash_failed"),
             Self::Uncertain => tr!("storage.uncertain"),
             Self::RenameUncertain => tr!("storage.rename_uncertain"),
         };
@@ -300,6 +302,33 @@ pub(crate) fn file_destination(directory: &Path, name: &str) -> Option<PathBuf> 
     Some(directory.join(name))
 }
 
+/// Check the selected path against its open document, keeping the selected alias.
+pub(crate) fn open_reference(
+    baseline: &FileBaseline,
+    source: &Path,
+) -> Result<FileBaseline, StorageError> {
+    if source == baseline.chosen_path {
+        return validate(baseline);
+    }
+    let alias = open(source.to_path_buf())?;
+    if alias.identity() != baseline.identity() || alias.bytes != baseline.bytes {
+        return Err(StorageError::Conflict);
+    }
+    Ok(alias)
+}
+
+#[cfg(feature = "native")]
+pub(crate) fn trash_file(expected: &FileBaseline) -> Result<(), StorageError> {
+    let current = validate(expected)?;
+    #[cfg(target_os = "macos")]
+    return crate::platform::move_to_trash(&current.chosen_path);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = current;
+        Err(StorageError::TrashFailed)
+    }
+}
+
 /// Rename the chosen directory entry, including a symlink itself when selected.
 /// The returned baseline keeps the existing document tied to the new name even
 /// if the move succeeded but directory sync or read-back could not be verified.
@@ -310,15 +339,7 @@ pub fn rename_file(
 ) -> Result<(FileBaseline, Option<StorageError>), StorageError> {
     let parent = source.parent().ok_or(StorageError::InvalidPath)?;
     let destination = file_destination(parent, name).ok_or(StorageError::InvalidPath)?;
-    let mut current = if source == baseline.chosen_path {
-        validate(baseline)?
-    } else {
-        let alias = open(source.to_path_buf())?;
-        if alias.identity() != baseline.identity() || alias.bytes != baseline.bytes {
-            return Err(StorageError::Conflict);
-        }
-        alias
-    };
+    let mut current = open_reference(baseline, source)?;
     if destination == current.chosen_path {
         return Ok((current, None));
     }
@@ -661,6 +682,19 @@ mod tests {
         save(&renamed, b"K=updated\n").unwrap();
         assert_eq!(fs::read(renamed.chosen_path).unwrap(), b"K=updated\n");
         assert!(!source.exists());
+    }
+
+    #[cfg(all(feature = "native", target_os = "macos"))]
+    #[test]
+    fn trash_refuses_to_move_a_file_replaced_after_confirmation() {
+        let directory = tempfile::tempdir().unwrap();
+        let baseline = fixture(&directory);
+        let replacement = directory.path().join(".env.replacement");
+        fs::write(&replacement, &baseline.bytes).unwrap();
+        fs::rename(replacement, &baseline.chosen_path).unwrap();
+
+        assert!(matches!(trash_file(&baseline), Err(StorageError::Conflict)));
+        assert_eq!(fs::read(&baseline.chosen_path).unwrap(), baseline.bytes);
     }
 
     #[test]
