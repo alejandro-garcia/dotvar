@@ -975,6 +975,7 @@ impl AppWindow {
                             .size_full()
                             .px(px(design::CONTENT_LEFT))
                             .pr(px(design::CONTENT_RIGHT))
+                            .pt(px(6.))
                             .pb(px(15.)),
                         )
                         .child(

@@ -1432,11 +1432,11 @@ dependencies = [
 
 [[package]]
 name = "env-core"
-version = "0.3.0"
+version = "0.3.1"
 
 [[package]]
 name = "env-desktop"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-channel",
  "env-core",
