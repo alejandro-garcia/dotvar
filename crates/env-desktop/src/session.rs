@@ -529,17 +529,18 @@ impl DocumentSession {
         Ok(())
     }
 
-    /// Confirm only this field and return its exact source token. Visibility is
-    /// deliberately outside this API: an explicit copy never copies a mask.
-    pub fn copy_token(&mut self, id: EntryId) -> Result<String, SessionError> {
+    /// Confirm only this field and return its content without quote delimiters.
+    pub fn copy_value(&mut self, id: EntryId) -> Result<String, SessionError> {
         if self.document.is_read_only() {
             return Err(SessionError::UnsupportedEncoding);
         }
         self.confirm_entry(id)?;
-        self.value(id).map(str::to_owned).ok_or(SessionError::Edit {
-            entry: id,
-            error: EditError::MissingEntry(id),
-        })
+        self.value_content(id)
+            .map(str::to_owned)
+            .ok_or(SessionError::Edit {
+                entry: id,
+                error: EditError::MissingEntry(id),
+            })
     }
 
     /// Return the whole confirmed working source, without writing or changing
@@ -816,7 +817,7 @@ mod tests {
         session.set_draft(id, "'pending'".into()).unwrap();
         session.set_commented(id, true).unwrap();
         assert!(session.is_dirty());
-        assert_eq!(session.copy_token(id).unwrap(), "'pending'");
+        assert_eq!(session.copy_value(id).unwrap(), "pending");
         assert_eq!(
             std::fs::read(&path).unwrap(),
             b"# before\r\nA=one # tail\r\nB=two\r\n"
@@ -1071,6 +1072,7 @@ mod tests {
         for (index, content) in expected.into_iter().enumerate() {
             let id = EntryId(index as u64 + 1);
             assert_eq!(s.value_content(id), Some(content));
+            assert_eq!(s.copy_value(id).unwrap(), content);
             s.set_content_draft(id, content.into()).unwrap();
             s.confirm_entry(id).unwrap();
         }
@@ -1108,13 +1110,12 @@ mod tests {
     }
 
     #[test]
-    fn empty_content_keeps_existing_delimiters_and_copy_keeps_the_source_token() {
+    fn empty_content_copies_as_empty_and_document_copy_keeps_existing_delimiters() {
         let (_dir, mut s) = quoted_session(b"A='old'\nB=\"old\"\nC=old\n");
         for id in [EntryId(1), EntryId(2), EntryId(3)] {
             s.set_content_draft(id, "".into()).unwrap();
+            assert_eq!(s.copy_value(id).unwrap(), "");
         }
-        assert_eq!(s.copy_token(EntryId(1)).unwrap(), "''");
-        assert_eq!(s.copy_token(EntryId(2)).unwrap(), "\"\"");
         assert_eq!(s.copy_document().unwrap(), "A=''\nB=\"\"\nC=\n");
         assert_eq!(s.value_content(EntryId(1)), Some(""));
     }
@@ -1150,7 +1151,8 @@ mod tests {
                 assert!(s.confirm_entry(a).is_err());
                 s.set_quote_style(a, style).unwrap();
             }
-            assert_eq!(s.copy_token(a).unwrap(), token);
+            assert_eq!(s.copy_value(a).unwrap(), content);
+            assert_eq!(s.value(a), Some(token));
             assert_eq!(s.value_content(a), Some(content));
             assert!(s.copy_document().unwrap().contains(" # tail\r\nB=two\r\n"));
         }
@@ -1170,7 +1172,8 @@ mod tests {
             s.set_quote_style(a, style).unwrap();
             assert_eq!(s.quote_style(a), Some(style));
             assert_eq!(s.value_content(a), Some("plain"));
-            assert_eq!(s.copy_token(a).unwrap(), token);
+            assert_eq!(s.copy_value(a).unwrap(), "plain");
+            assert_eq!(s.value(a), Some(token));
             assert!(
                 s.copy_document()
                     .unwrap()
@@ -1214,7 +1217,8 @@ mod tests {
         assert!(s.confirm_entry(a).is_err());
         assert!(s.is_dirty());
         s.set_quote_style(a, QuoteStyle::Single).unwrap();
-        assert_eq!(s.copy_token(a).unwrap(), "'\"old\"'");
+        assert_eq!(s.copy_value(a).unwrap(), "\"old\"");
+        assert_eq!(s.value(a), Some("'\"old\"'"));
         assert_eq!(s.value_content(a), Some("\"old\""));
     }
 
@@ -1227,7 +1231,8 @@ mod tests {
         assert_eq!(s.value(a), Some("\"\""));
         assert!(s.is_dirty());
         s.set_content_draft(a, "typed".into()).unwrap();
-        assert_eq!(s.copy_token(a).unwrap(), "\"typed\"");
+        assert_eq!(s.copy_value(a).unwrap(), "typed");
+        assert_eq!(s.value(a), Some("\"typed\""));
         s.set_quote_style(a, QuoteStyle::Single).unwrap();
         s.cancel_draft(a);
         assert_eq!(s.quote_style(a), Some(QuoteStyle::Double));
@@ -1250,7 +1255,7 @@ mod tests {
             assert_eq!(s.value_content(id), Some(content));
             assert!(s.draft(id).unwrap().error.is_some());
             assert!(s.prepare_save(false).is_err());
-            assert!(s.copy_token(id).is_err());
+            assert!(s.copy_value(id).is_err());
             assert_eq!(s.document.bytes(), source.as_bytes());
             assert_eq!(s.value_content(id), Some(content));
             s.cancel_draft(id);
@@ -1280,12 +1285,13 @@ mod tests {
     }
 
     #[test]
-    fn copy_token_confirms_only_its_literal_draft_without_saving_or_touching_other_drafts() {
+    fn copy_value_confirms_only_its_draft_without_saving_or_touching_other_drafts() {
         let (_dir, mut s, a, b) = session();
         let saved = s.baseline.clone();
         s.set_draft(a, "'literal # token'".into()).unwrap();
         s.set_draft(b, "invalid\nINJECTED=value".into()).unwrap();
-        assert_eq!(s.copy_token(a).unwrap(), "'literal # token'");
+        assert_eq!(s.copy_value(a).unwrap(), "literal # token");
+        assert_eq!(s.value(a), Some("'literal # token'"));
         assert!(s.draft(a).is_none());
         assert_eq!(s.value(b), Some("invalid\nINJECTED=value"));
         assert!(s.draft(b).unwrap().error.is_some());
@@ -1300,19 +1306,19 @@ mod tests {
     }
 
     #[test]
-    fn invalid_token_copy_fails_without_confirming_other_fields_or_losing_its_text() {
+    fn invalid_value_copy_fails_without_confirming_other_fields_or_losing_its_text() {
         let (_dir, mut s, a, b) = session();
         let original = s.document.bytes().to_vec();
         s.set_draft(a, "invalid\nINJECTED=value".into()).unwrap();
         s.set_draft(b, "pending".into()).unwrap();
-        assert!(matches!(s.copy_token(a), Err(SessionError::Edit { entry, .. }) if entry == a));
+        assert!(matches!(s.copy_value(a), Err(SessionError::Edit { entry, .. }) if entry == a));
         assert_eq!(s.value(a), Some("invalid\nINJECTED=value"));
         assert_eq!(s.value(b), Some("pending"));
         assert!(s.draft(b).is_some());
         assert_eq!(s.document.bytes(), original);
         assert_eq!(s.document.revision(), 0);
         assert!(matches!(
-            s.copy_token(EntryId(999)),
+            s.copy_value(EntryId(999)),
             Err(SessionError::Edit {
                 error: EditError::MissingEntry(EntryId(999)),
                 ..
@@ -1371,7 +1377,7 @@ mod tests {
             Err(SessionError::UnsupportedEncoding)
         ));
         assert!(matches!(
-            unsupported.copy_token(EntryId(1)),
+            unsupported.copy_value(EntryId(1)),
             Err(SessionError::UnsupportedEncoding)
         ));
         assert_eq!(unsupported.document.bytes(), bytes);
@@ -1388,7 +1394,7 @@ mod tests {
         s.set_draft(a, "save_snapshot".into()).unwrap();
         let request = s.prepare_save(false).unwrap().unwrap();
         s.set_draft(a, "later_work".into()).unwrap();
-        assert_eq!(s.copy_token(a).unwrap(), "later_work");
+        assert_eq!(s.copy_value(a).unwrap(), "later_work");
         assert!(s.copy_document().unwrap().contains("A=later_work # tail"));
         assert!(s.is_saving());
         let saved = storage::save(&request.baseline, &request.bytes).unwrap();

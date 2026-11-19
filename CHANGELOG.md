@@ -6,6 +6,12 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-19
+
+### Fixed
+
+- Copy individual variable values without surrounding quotes while preserving quotes within the value.
+
 ## [0.3.1] - 2026-11-19
 
 ### Fixed
@@ -52,7 +58,8 @@ This file tracks notable changes to Dotvar. It follows
 - English and Spanish interface options, with a setting to follow the system language.
 - Signed and notarized macOS installer for Apple Silicon, with a SHA-256 checksum.
 
-[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.3.1...master
+[Unreleased]: https://github.com/nicoandrade/dotvar/compare/v0.3.2...master
+[0.3.2]: https://github.com/nicoandrade/dotvar/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/nicoandrade/dotvar/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/nicoandrade/dotvar/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nicoandrade/dotvar/compare/v0.1.0...v0.2.0

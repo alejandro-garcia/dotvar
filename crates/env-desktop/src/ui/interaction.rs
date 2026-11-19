@@ -36,7 +36,7 @@ impl AppWindow {
         let result = self
             .tab_mut(tab)
             .and_then(|t| t.content.as_mut())
-            .map(|s| s.copy_token(entry));
+            .map(|s| s.copy_value(entry));
         match result {
             Some(Ok(text)) => {
                 cx.write_to_clipboard(ClipboardItem::new_string(text));

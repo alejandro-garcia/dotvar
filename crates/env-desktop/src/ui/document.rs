@@ -530,7 +530,7 @@ impl AppWindow {
                                 action_icons::button("new-variable-copy", cx)
                                     .w(px(Asset::VariableCopy.dimensions().0))
                                     .accessibility_label(tr!("variable.copy_value"))
-                                    .tooltip(tr!("variable.copy_literal"))
+                                    .tooltip(tr!("variable.copy_value"))
                                     .child(design::asset(Asset::VariableCopy))
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         if let Some(draft) = this
@@ -539,7 +539,7 @@ impl AppWindow {
                                             .and_then(DocumentSession::new_variable)
                                         {
                                             cx.write_to_clipboard(ClipboardItem::new_string(
-                                                draft.token(),
+                                                draft.value.clone(),
                                             ));
                                         }
                                     })),
@@ -1416,7 +1416,7 @@ impl AppWindow {
                                                         "variable.copy_named_value",
                                                         name = name,
                                                     ))
-                                                    .tooltip(tr!("variable.copy_literal"))
+                                                    .tooltip(tr!("variable.copy_value"))
                                                     .child(action_icons::swap(
                                                         format!("copy-{tab_id}-{}", id.0),
                                                         ActionIcon::Duplicate,

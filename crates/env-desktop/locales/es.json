@@ -171,7 +171,6 @@
     "new_actions": "Acciones de la nueva variable",
     "copy_value": "Copiar valor",
     "copy_named_value": "Copiar valor de %{name}",
-    "copy_literal": "Copiar valor literal",
     "hide_value": "Ocultar valor",
     "hide_named_value": "Ocultar valor de %{name}",
     "show_value": "Mostrar valor",
