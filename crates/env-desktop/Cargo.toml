@@ -13,7 +13,7 @@ required-features = ["native"]
 
 [features]
 default = ["native"]
-native = ["dep:gpui-kit", "dep:sys-locale", "macos-quit", "objc2-app-kit?/NSWindow", "dep:objc2-foundation"]
+native = ["dep:gpui-kit", "dep:sys-locale", "macos-quit", "objc2-app-kit?/NSWindow", "dep:objc2-foundation", "dep:trash"]
 macos-quit = ["dep:objc2", "dep:objc2-app-kit"]
 
 [dependencies]
@@ -33,6 +33,12 @@ resvg = "=0.45.1"
 
 [target.'cfg(any(target_vendor = "apple", target_os = "linux"))'.dependencies]
 rustix = { version = "=1.1.6", features = ["fs"] }
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+trash = { version = "=5.4.0", default-features = false, features = ["coinit_apartmentthreaded", "freedesktop", "jiff"], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "=0.6.5", optional = true }
