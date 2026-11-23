@@ -463,11 +463,19 @@ enum Stage {
     ReadBack,
 }
 
+#[cfg(not(unix))]
+fn preserve_metadata(
+    _temporary: &NamedTempFile,
+    _baseline: &FileBaseline,
+) -> Result<(), StorageError> {
+    Err(StorageError::UnsupportedAccessMetadata)
+}
+
+#[cfg(unix)]
 fn preserve_metadata(
     temporary: &NamedTempFile,
     baseline: &FileBaseline,
 ) -> Result<(), StorageError> {
-    #[cfg(unix)]
     {
         let stamp = &baseline.file_stamp;
         let metadata = temporary.as_file().metadata()?;
@@ -484,11 +492,6 @@ fn preserve_metadata(
         {
             return Err(StorageError::UnsupportedAccessMetadata);
         }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = (temporary, baseline);
-        return Err(StorageError::UnsupportedAccessMetadata);
     }
     Ok(())
 }

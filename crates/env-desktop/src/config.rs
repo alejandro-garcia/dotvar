@@ -557,10 +557,10 @@ mod tests {
         let store = ConfigStore::from_directory(directory.path().join("config"));
         let expected = catalog(directory.path());
         store.save(&expected).unwrap();
-        let before = fs::metadata(store.path()).unwrap();
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
+            let before = fs::metadata(store.path()).unwrap();
             assert_eq!(before.permissions().mode() & 0o777, 0o600);
             assert_eq!(
                 fs::metadata(&store.directory).unwrap().permissions().mode() & 0o777,
