@@ -286,9 +286,37 @@ pub(super) fn path_info(path: &Path, follow: bool) -> io::Result<FileInfo> {
     file_info(&file)
 }
 
+/// `ERROR_UNABLE_TO_MOVE_REPLACEMENT`: the replaced file was moved away but the
+/// replacement could not take its name; the replacement keeps its temporary name.
+const ERROR_UNABLE_TO_MOVE_REPLACEMENT: i32 = 1176;
+/// `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`: the replacement could not be moved and
+/// the replaced file exists under a different name.
+const ERROR_UNABLE_TO_MOVE_REPLACEMENT_2: i32 = 1177;
+
+/// Where a failed [`replace_file`] left the files.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ReplaceFailure {
+    /// Both files keep their original names; the temporary can be deleted.
+    BeforeReplace,
+    /// The original may no longer exist under its name. The temporary may be the
+    /// only copy of the new content and must be kept.
+    AfterReplace,
+}
+
+/// Classify a `ReplaceFileW` error by the state it leaves on disk.
+pub(super) fn classify_replace_error(error: &io::Error) -> ReplaceFailure {
+    match error.raw_os_error() {
+        Some(ERROR_UNABLE_TO_MOVE_REPLACEMENT | ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) => {
+            ReplaceFailure::AfterReplace
+        }
+        _ => ReplaceFailure::BeforeReplace,
+    }
+}
+
 /// Atomically swap `replacement` in for `replaced`, keeping the replaced file's
 /// ACL, attributes and alternate streams. Fails, leaving `replaced` untouched,
-/// when those cannot be merged. The data is written through before returning.
+/// when those cannot be merged (see [`classify_replace_error`] for the failures
+/// that happen after the original was already moved). The data is written through before returning.
 pub(super) fn replace_file(replaced: &Path, replacement: &Path) -> io::Result<()> {
     let replaced = wide(replaced)?;
     let replacement = wide(replacement)?;

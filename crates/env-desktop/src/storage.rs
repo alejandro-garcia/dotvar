@@ -692,6 +692,22 @@ fn save_with_hook(
     bytes: &[u8],
     hook: &mut impl FnMut(Stage, &Path) -> io::Result<()>,
 ) -> Result<FileBaseline, StorageError> {
+    save_with_replace_hook(
+        baseline,
+        bytes,
+        hook,
+        #[cfg(windows)]
+        &mut windows::replace_file,
+    )
+}
+
+/// [`save_with_hook`] with the Windows replace step injectable for tests.
+fn save_with_replace_hook(
+    baseline: &FileBaseline,
+    bytes: &[u8],
+    hook: &mut impl FnMut(Stage, &Path) -> io::Result<()>,
+    #[cfg(windows)] replace: &mut impl FnMut(&Path, &Path) -> io::Result<()>,
+) -> Result<FileBaseline, StorageError> {
     let current = validate(baseline)?;
     if current.is_hardlinked() {
         return Err(StorageError::Hardlink);
@@ -743,12 +759,23 @@ fn save_with_hook(
         .map_err(|error| StorageError::Io(error.error))?;
     // ReplaceFileW keeps the original's ACL, attributes and streams but refuses to
     // run while the replacement is open for writing, so the handle is closed first.
-    // If it fails, dropping the temporary path removes the temporary file.
+    // If it fails before the original moved, dropping the temporary path removes the
+    // temporary file. Errors 1176/1177 mean the original may already be gone from
+    // its name, so the temporary (possibly the only copy of the new content) is
+    // kept and the outcome is `Uncertain`; no recovery move is attempted.
     #[cfg(windows)]
     let persisted = {
         let (file, mut path) = temporary.into_parts();
         drop(file);
-        windows::replace_file(&current.resolved_path, &path)?;
+        if let Err(error) = replace(&current.resolved_path, &path) {
+            return Err(match windows::classify_replace_error(&error) {
+                windows::ReplaceFailure::BeforeReplace => StorageError::Io(error),
+                windows::ReplaceFailure::AfterReplace => {
+                    path.disable_cleanup(true);
+                    StorageError::Uncertain
+                }
+            });
+        }
         path.disable_cleanup(true);
         OpenOptions::new()
             .write(true)
@@ -1586,6 +1613,77 @@ VALUE=after
         assert_ne!(after.dacl, Some(owner_only()));
         assert!(!saved.is_hardlinked());
         assert_no_temporaries(directory.path());
+    }
+
+    #[test]
+    fn replace_errors_after_the_original_moved_are_classified_as_uncertain() {
+        for code in [1176, 1177] {
+            let error = io::Error::from_raw_os_error(code);
+            assert_eq!(
+                windows::classify_replace_error(&error),
+                windows::ReplaceFailure::AfterReplace,
+                "{code}"
+            );
+        }
+        // 1175 (unable to remove replaced), 32 (sharing violation) and 5 (access
+        // denied) leave both files under their original names.
+        for code in [1175, 32, 5] {
+            let error = io::Error::from_raw_os_error(code);
+            assert_eq!(
+                windows::classify_replace_error(&error),
+                windows::ReplaceFailure::BeforeReplace,
+                "{code}"
+            );
+        }
+        assert_eq!(
+            windows::classify_replace_error(&io::Error::other("synthetic")),
+            windows::ReplaceFailure::BeforeReplace
+        );
+    }
+
+    fn temporaries(directory: &Path) -> Vec<PathBuf> {
+        fs::read_dir(directory)
+            .unwrap()
+            .map(|entry| entry.unwrap())
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(".dotvar-"))
+            .map(|entry| entry.path())
+            .collect()
+    }
+
+    #[test]
+    fn replace_failure_after_the_original_moved_keeps_the_temporary_and_is_uncertain() {
+        for code in [1176, 1177] {
+            let directory = tempdir().unwrap();
+            let initial = fixture(&directory);
+            let snapshot = b"VALUE=ours\n";
+            let result =
+                save_with_replace_hook(&initial, snapshot, &mut |_, _| Ok(()), &mut |_, _| {
+                    Err(io::Error::from_raw_os_error(code))
+                });
+            let error = result.err().unwrap();
+            assert!(matches!(error, StorageError::Uncertain), "{code}");
+            assert!(error.is_uncertain());
+            let kept = temporaries(directory.path());
+            assert_eq!(kept.len(), 1, "{code}");
+            assert_eq!(fs::read(&kept[0]).unwrap(), snapshot);
+        }
+    }
+
+    #[test]
+    fn replace_failure_leaving_both_files_named_is_io_and_cleans_the_temporary() {
+        for code in [1175, 32] {
+            let directory = tempdir().unwrap();
+            let initial = fixture(&directory);
+            let result = save_with_replace_hook(
+                &initial,
+                b"VALUE=ours\n",
+                &mut |_, _| Ok(()),
+                &mut |_, _| Err(io::Error::from_raw_os_error(code)),
+            );
+            assert!(matches!(result, Err(StorageError::Io(_))), "{code}");
+            assert_eq!(fs::read(&initial.chosen_path).unwrap(), ORIGINAL);
+            assert_no_temporaries(directory.path());
+        }
     }
 
     #[test]
