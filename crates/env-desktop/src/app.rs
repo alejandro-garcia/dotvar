@@ -27,6 +27,7 @@ actions!(
         MoveTabRight,
         ResetCatalog,
         CopyDocument,
+        ToggleAllValues,
         FindKey,
         FindNext,
         FindPrevious,
@@ -210,6 +211,7 @@ pub(crate) fn shortcut_table(qa: bool) -> Vec<Shortcut> {
         Shortcut::new("secondary-w", CloseWindow, Some("Settings")),
         Shortcut::new("secondary-shift-w", CloseWindow, None),
         Shortcut::new("secondary-shift-c", CopyDocument, None),
+        Shortcut::new("secondary-shift-h", ToggleAllValues, None),
         Shortcut::new("secondary-f", FindKey, None),
         Shortcut::new("secondary-g", FindNext, None),
         Shortcut::new("secondary-shift-g", FindPrevious, None),
@@ -424,6 +426,7 @@ mod tests {
             let keys: &'static str = Box::leak(format!("cmd-{digit}").into_boxed_str());
             expected.push((Keystroke::parse(keys).unwrap(), None));
         }
+        expected.push((Keystroke::parse("cmd-shift-h").unwrap(), None));
         expected.push((Keystroke::parse("cmd-alt-9").unwrap(), None));
         let actual = resolved(OperatingSystem::Mac, true);
         for binding in &expected {
@@ -445,6 +448,30 @@ mod tests {
                     "{binding:?} repeats on {os:?}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn toggle_all_values_is_bound_once_to_secondary_shift_h_without_collisions() {
+        let bound: Vec<_> = shortcut_table(true)
+            .into_iter()
+            .filter(|shortcut| shortcut.action.name() == "dotvar::ToggleAllValues")
+            .map(|shortcut| (shortcut.keys, shortcut.context))
+            .collect();
+        assert_eq!(bound, [("secondary-shift-h", None)]);
+        for (os, expected) in [
+            (OperatingSystem::Mac, "cmd-shift-h"),
+            (OperatingSystem::Windows, "ctrl-shift-h"),
+            (OperatingSystem::Linux, "ctrl-shift-h"),
+        ] {
+            let keystroke = Keystroke::parse(expected).unwrap();
+            let bindings = resolved(os, true);
+            assert_eq!(
+                bindings.iter().filter(|(k, _)| *k == keystroke).count(),
+                1,
+                "{expected} on {os:?}"
+            );
+            assert!(bindings.contains(&(keystroke, None)));
         }
     }
 

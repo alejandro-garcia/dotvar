@@ -1067,9 +1067,15 @@ impl Render for AppWindow {
                         tr!("editor.show_all_values")
                     })
                     .tooltip(if revealed {
-                        tr!("editor.hide_all_values")
+                        tr!(
+                            "editor.hide_all_values_shortcut",
+                            shortcut = i18n::shortcut(true, "H")
+                        )
                     } else {
-                        tr!("editor.show_all_values")
+                        tr!(
+                            "editor.show_all_values_shortcut",
+                            shortcut = i18n::shortcut(true, "H")
+                        )
                     })
                     .child(action_icons::swap(
                         format!("reveal-document-{tab_id}"),
@@ -1196,6 +1202,9 @@ impl Render for AppWindow {
             )
             .on_action(
                 cx.listener(|this, _: &CopyDocument, window, cx| this.copy_document(window, cx)),
+            )
+            .on_action(
+                cx.listener(|this, _: &ToggleAllValues, window, cx| this.toggle_all(window, cx)),
             )
             .on_action(cx.listener(|this, _: &FindKey, window, cx| this.open_search(window, cx)))
             .on_action(cx.listener(|this, _: &FindNext, _, cx| this.find_match(false, cx)))

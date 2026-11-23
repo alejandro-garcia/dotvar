@@ -140,6 +140,8 @@
     "copy_document_shortcut": "Copiar documento · %{shortcut}",
     "hide_all_values": "Ocultar todos los valores",
     "show_all_values": "Mostrar todos los valores",
+    "hide_all_values_shortcut": "Ocultar todos los valores · %{shortcut}",
+    "show_all_values_shortcut": "Mostrar todos los valores · %{shortcut}",
     "quote_unquoted": "Sin comillas",
     "quote_double": "Comillas dobles",
     "quote_single": "Comillas simples",

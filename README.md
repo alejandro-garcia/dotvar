@@ -80,6 +80,7 @@ cargo run -p env-desktop --locked
 | Next / previous match (in Find) | **⌘G** / **⇧⌘G** | **Ctrl+G** / **Ctrl+Shift+G** |
 | Save / Save As | **⌘S** / **⇧⌘S** | **Ctrl+S** / **Ctrl+Shift+S** |
 | Copy the working document | **⇧⌘C** | **Ctrl+Shift+C** |
+| Show or hide all values | **⇧⌘H** | **Ctrl+Shift+H** |
 | Settings / Quit | **⌘,** / **⌘Q** | **Ctrl+,** / **Ctrl+Q** |
 
 Drag tabs to reorder them within a project. Tab shortcuts follow the new order.

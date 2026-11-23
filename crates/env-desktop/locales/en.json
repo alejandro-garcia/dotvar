@@ -140,6 +140,8 @@
     "copy_document_shortcut": "Copy Document · %{shortcut}",
     "hide_all_values": "Hide all values",
     "show_all_values": "Show all values",
+    "hide_all_values_shortcut": "Hide all values · %{shortcut}",
+    "show_all_values_shortcut": "Show all values · %{shortcut}",
     "quote_unquoted": "No quotes",
     "quote_double": "Double quotes",
     "quote_single": "Single quotes",
