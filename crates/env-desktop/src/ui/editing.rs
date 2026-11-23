@@ -443,8 +443,12 @@ impl AppWindow {
                     cx.stop_propagation();
                     cx.notify();
                 }
+                "enter" if event.keystroke.modifiers.shift => {
+                    self.find_match(true, cx);
+                    cx.stop_propagation();
+                }
                 "enter" => {
-                    self.find_match(event.keystroke.modifiers.shift, cx);
+                    self.edit_found_value(window, cx);
                     cx.stop_propagation();
                 }
                 _ => {}

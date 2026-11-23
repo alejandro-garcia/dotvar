@@ -158,6 +158,23 @@ impl AppWindow {
         }
         cx.notify();
     }
+    /// Enter in the search box: edit the value of the current (or first)
+    /// match through the same path as clicking a value. The search box stays
+    /// open, as it does when a value is clicked. Does nothing without matches.
+    pub(super) fn edit_found_value(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(tab) = self.active_tab() else { return };
+        let Some(session) = &tab.content else { return };
+        let Some(entry) =
+            crate::presentation::match_to_edit(&session.document, &tab.query, tab.matched)
+        else {
+            return;
+        };
+        let tab_id = tab.id;
+        if let Some(tab) = self.tab_mut(tab_id) {
+            tab.matched = Some(entry);
+        }
+        self.begin_editor(tab_id, entry, window, cx);
+    }
     pub(super) fn search_view(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let search = self.search.as_ref()?;
         let count = self
