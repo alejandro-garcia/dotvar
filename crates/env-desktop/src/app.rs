@@ -52,58 +52,17 @@ pub fn run(initial_path: Option<PathBuf>) {
         .run(move |cx| {
             init(cx);
             Theme::change(ThemeMode::Dark, None, cx);
-            cx.bind_keys([
-                KeyBinding::new("cmd-o", OpenFile, None),
-                KeyBinding::new("cmd-shift-o", OpenProject, None),
-                KeyBinding::new("cmd-,", OpenSettings, None),
-                KeyBinding::new("cmd-k", ToggleCommandPalette, None),
-                KeyBinding::new("cmd-n", NewFile, None),
-                KeyBinding::new("cmd-s", Save, None),
-                KeyBinding::new("cmd-shift-s", SaveAs, None),
-                KeyBinding::new("cmd-z", UndoDocument, None),
-                KeyBinding::new("cmd-shift-z", RedoDocument, None),
-                KeyBinding::new("cmd-q", Quit, None),
-                KeyBinding::new("cmd-w", CloseTab, None),
-                KeyBinding::new("cmd-w", CloseWindow, Some("Settings")),
-                KeyBinding::new("cmd-shift-w", CloseWindow, None),
-                KeyBinding::new("cmd-shift-c", CopyDocument, None),
-                KeyBinding::new("cmd-f", FindKey, None),
-                KeyBinding::new("cmd-g", FindNext, None),
-                KeyBinding::new("cmd-shift-g", FindPrevious, None),
-                KeyBinding::new("ctrl-tab", NextTab, None),
-                KeyBinding::new("ctrl-shift-tab", PreviousTab, None),
-                KeyBinding::new("tab", NextField, Some("EnvDocumentRow")),
-                KeyBinding::new("shift-tab", PreviousField, Some("EnvDocumentRow")),
-                KeyBinding::new("tab", NextField, Some("EnvDocumentRow > Input")),
-                KeyBinding::new("shift-tab", PreviousField, Some("EnvDocumentRow > Input")),
-                KeyBinding::new(
-                    "space",
-                    gpui_kit::base::actions::Confirm { secondary: false },
-                    Some("VariableMenu > PopupMenu"),
-                ),
-                KeyBinding::new(
-                    "tab",
-                    gpui_kit::base::actions::SelectDown,
-                    Some("VariableMenu > PopupMenu"),
-                ),
-                KeyBinding::new(
-                    "shift-tab",
-                    gpui_kit::base::actions::SelectUp,
-                    Some("VariableMenu > PopupMenu"),
-                ),
-            ]);
-            cx.bind_keys(
-                [
-                    "cmd-1", "cmd-2", "cmd-3", "cmd-4", "cmd-5", "cmd-6", "cmd-7", "cmd-8", "cmd-9",
-                ]
+            let qa =
+                crate::config::app_env("QA_FLOATING").as_deref() == Some(std::ffi::OsStr::new("1"));
+            let bindings: Vec<_> = shortcut_table(qa)
                 .into_iter()
-                .enumerate()
-                .map(|(index, key)| KeyBinding::new(key, SelectTabAt(index), None)),
-            );
-            if crate::config::app_env("QA_FLOATING").as_deref() == Some(std::ffi::OsStr::new("1")) {
-                cx.bind_keys([KeyBinding::new("cmd-alt-9", QaResize, None)]);
+                .map(|shortcut| shortcut.binding(cx))
+                .collect();
+            cx.bind_keys(bindings);
+            if cfg!(target_os = "macos") {
+                // AppKit funnels termination through the native quit guard.
+                cx.on_action(|_: &Quit, cx| cx.quit());
             }
-            cx.on_action(|_: &Quit, cx| cx.quit());
             set_menus(cx);
             cx.on_window_closed(|cx, _| {
                 if cx.windows().is_empty() {
@@ -122,7 +81,9 @@ pub fn run(initial_path: Option<PathBuf>) {
                 app_id: Some(BUNDLE_ID.into()),
                 ..TitleBar::window_options()
             };
-            if let Some(titlebar) = &mut options.titlebar {
+            if cfg!(target_os = "macos")
+                && let Some(titlebar) = &mut options.titlebar
+            {
                 titlebar.traffic_light_position = Some(point(px(10.), px(12.)));
             }
             let preferences = cx.new(|_| preferences);
@@ -160,6 +121,9 @@ pub fn run(initial_path: Option<PathBuf>) {
                         cx.quit();
                         return;
                     }
+                    if !cfg!(target_os = "macos") {
+                        route_quit_through_the_window(handle, view.downgrade(), cx);
+                    }
                     let weak = view.downgrade();
                     cx.spawn(async move |cx| {
                         while let Ok(paths) = pending_file_opens.recv().await {
@@ -190,6 +154,125 @@ pub fn run(initial_path: Option<PathBuf>) {
                 }
             }
         });
+}
+
+/// One entry of the application keymap. `secondary-` resolves to Cmd on macOS
+/// and Ctrl on Windows and Linux.
+pub(crate) struct Shortcut {
+    pub(crate) keys: &'static str,
+    pub(crate) context: Option<&'static str>,
+    action: Box<dyn Action>,
+}
+
+impl Shortcut {
+    fn new(keys: &'static str, action: impl Action, context: Option<&'static str>) -> Self {
+        Self {
+            keys,
+            context,
+            action: Box::new(action),
+        }
+    }
+
+    fn binding(self, cx: &App) -> KeyBinding {
+        let predicate = self.context.map(|context| {
+            std::rc::Rc::new(KeyBindingContextPredicate::parse(context).expect("valid key context"))
+        });
+        KeyBinding::load(self.keys, self.action, predicate, false, None, cx)
+            .expect("valid shortcut")
+    }
+}
+
+/// Every application shortcut. The QA-only resize binding is opt-in.
+pub(crate) fn shortcut_table(qa: bool) -> Vec<Shortcut> {
+    const TABS: [&str; 9] = [
+        "secondary-1",
+        "secondary-2",
+        "secondary-3",
+        "secondary-4",
+        "secondary-5",
+        "secondary-6",
+        "secondary-7",
+        "secondary-8",
+        "secondary-9",
+    ];
+    let mut table = vec![
+        Shortcut::new("secondary-o", OpenFile, None),
+        Shortcut::new("secondary-shift-o", OpenProject, None),
+        Shortcut::new("secondary-,", OpenSettings, None),
+        Shortcut::new("secondary-k", ToggleCommandPalette, None),
+        Shortcut::new("secondary-n", NewFile, None),
+        Shortcut::new("secondary-s", Save, None),
+        Shortcut::new("secondary-shift-s", SaveAs, None),
+        Shortcut::new("secondary-z", UndoDocument, None),
+        Shortcut::new("secondary-shift-z", RedoDocument, None),
+        Shortcut::new("secondary-q", Quit, None),
+        Shortcut::new("secondary-w", CloseTab, None),
+        Shortcut::new("secondary-w", CloseWindow, Some("Settings")),
+        Shortcut::new("secondary-shift-w", CloseWindow, None),
+        Shortcut::new("secondary-shift-c", CopyDocument, None),
+        Shortcut::new("secondary-f", FindKey, None),
+        Shortcut::new("secondary-g", FindNext, None),
+        Shortcut::new("secondary-shift-g", FindPrevious, None),
+        Shortcut::new("ctrl-tab", NextTab, None),
+        Shortcut::new("ctrl-shift-tab", PreviousTab, None),
+        Shortcut::new("tab", NextField, Some("EnvDocumentRow")),
+        Shortcut::new("shift-tab", PreviousField, Some("EnvDocumentRow")),
+        Shortcut::new("tab", NextField, Some("EnvDocumentRow > Input")),
+        Shortcut::new("shift-tab", PreviousField, Some("EnvDocumentRow > Input")),
+        Shortcut::new(
+            "space",
+            gpui_kit::base::actions::Confirm { secondary: false },
+            Some("VariableMenu > PopupMenu"),
+        ),
+        Shortcut::new(
+            "tab",
+            gpui_kit::base::actions::SelectDown,
+            Some("VariableMenu > PopupMenu"),
+        ),
+        Shortcut::new(
+            "shift-tab",
+            gpui_kit::base::actions::SelectUp,
+            Some("VariableMenu > PopupMenu"),
+        ),
+    ];
+    table.extend(
+        TABS.into_iter()
+            .enumerate()
+            .map(|(index, keys)| Shortcut::new(keys, SelectTabAt(index), None)),
+    );
+    if qa {
+        table.push(Shortcut::new("secondary-alt-9", QaResize, None));
+    }
+    table
+}
+
+/// Off macOS nothing intercepts termination, so Quit asks the main window to
+/// close through the same unsaved-change flow as its close button. Once that
+/// window is gone the app ends even if Settings is still open.
+fn route_quit_through_the_window(
+    handle: AnyWindowHandle,
+    view: WeakEntity<crate::ui::AppWindow>,
+    cx: &mut App,
+) {
+    cx.on_action(move |_: &Quit, cx| {
+        let view = view.clone();
+        cx.defer(move |cx| {
+            let _ = handle.update(cx, |_, window, cx| {
+                window.activate_window();
+                let _ = view.update(cx, |this, cx| this.request_close(window, cx));
+            });
+        });
+    });
+    cx.on_window_closed(move |cx, _| {
+        if !cx
+            .windows()
+            .iter()
+            .any(|open| open.window_id() == handle.window_id())
+        {
+            cx.quit();
+        }
+    })
+    .detach();
 }
 
 fn application_with_file_open_events(
@@ -259,4 +342,124 @@ pub(crate) fn set_menus(cx: &mut App) {
             ],
         },
     ]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shortcut_table;
+    use gpui_kit::{Keystroke, OperatingSystem};
+    use std::collections::HashSet;
+
+    const OSES: [OperatingSystem; 3] = [
+        OperatingSystem::Mac,
+        OperatingSystem::Windows,
+        OperatingSystem::Linux,
+    ];
+
+    fn resolved(os: OperatingSystem, qa: bool) -> Vec<(Keystroke, Option<&'static str>)> {
+        shortcut_table(qa)
+            .into_iter()
+            .map(|shortcut| {
+                (
+                    Keystroke::parse_with_os(shortcut.keys, os)
+                        .unwrap_or_else(|_| panic!("unparsable shortcut {}", shortcut.keys)),
+                    shortcut.context,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn shortcuts_use_ctrl_off_macos_and_never_the_windows_key() {
+        for os in [OperatingSystem::Windows, OperatingSystem::Linux] {
+            for (keystroke, context) in resolved(os, true) {
+                assert!(
+                    !keystroke.modifiers.platform,
+                    "{keystroke:?} {context:?} needs the platform key on {os:?}"
+                );
+            }
+            let open = Keystroke::parse("ctrl-o").unwrap();
+            assert!(resolved(os, false).contains(&(open, None)));
+        }
+    }
+
+    #[test]
+    fn macos_keeps_every_previous_command_binding() {
+        let previous: [(&str, Option<&str>); 25] = [
+            ("cmd-o", None),
+            ("cmd-shift-o", None),
+            ("cmd-,", None),
+            ("cmd-k", None),
+            ("cmd-n", None),
+            ("cmd-s", None),
+            ("cmd-shift-s", None),
+            ("cmd-z", None),
+            ("cmd-shift-z", None),
+            ("cmd-q", None),
+            ("cmd-w", None),
+            ("cmd-w", Some("Settings")),
+            ("cmd-shift-w", None),
+            ("cmd-shift-c", None),
+            ("cmd-f", None),
+            ("cmd-g", None),
+            ("cmd-shift-g", None),
+            ("ctrl-tab", None),
+            ("ctrl-shift-tab", None),
+            ("tab", Some("EnvDocumentRow")),
+            ("shift-tab", Some("EnvDocumentRow")),
+            ("tab", Some("EnvDocumentRow > Input")),
+            ("shift-tab", Some("EnvDocumentRow > Input")),
+            ("space", Some("VariableMenu > PopupMenu")),
+            ("tab", Some("VariableMenu > PopupMenu")),
+        ];
+        let mut expected: Vec<_> = previous
+            .iter()
+            .map(|(keys, context)| (Keystroke::parse(keys).unwrap(), *context))
+            .collect();
+        expected.push((
+            Keystroke::parse("shift-tab").unwrap(),
+            Some("VariableMenu > PopupMenu"),
+        ));
+        for digit in 1..=9 {
+            let keys: &'static str = Box::leak(format!("cmd-{digit}").into_boxed_str());
+            expected.push((Keystroke::parse(keys).unwrap(), None));
+        }
+        expected.push((Keystroke::parse("cmd-alt-9").unwrap(), None));
+        let actual = resolved(OperatingSystem::Mac, true);
+        for binding in &expected {
+            assert!(
+                actual.contains(binding),
+                "missing macOS binding {binding:?}"
+            );
+        }
+        assert_eq!(actual.len(), expected.len());
+    }
+
+    #[test]
+    fn no_two_shortcuts_share_a_keystroke_and_context_on_any_platform() {
+        for os in OSES {
+            let mut seen = HashSet::new();
+            for binding in resolved(os, true) {
+                assert!(
+                    seen.insert(binding.clone()),
+                    "{binding:?} repeats on {os:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn tab_cycling_stays_on_ctrl_tab_and_does_not_collide_with_ctrl_digits() {
+        for os in OSES {
+            let bindings = resolved(os, true);
+            for keys in ["ctrl-tab", "ctrl-shift-tab"] {
+                let keystroke = Keystroke::parse(keys).unwrap();
+                assert_eq!(
+                    bindings.iter().filter(|(k, _)| *k == keystroke).count(),
+                    1,
+                    "{keys} on {os:?}"
+                );
+            }
+        }
+    }
 }

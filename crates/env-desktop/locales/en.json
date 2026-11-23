@@ -100,7 +100,7 @@
     "rename_pending": "Wait for the file rename to finish.",
     "close": "Close Tab",
     "close_unsaved": "Close unsaved tab",
-    "close_shortcut": "Close Tab · ⌘W",
+    "close_shortcut": "Close Tab · %{shortcut}",
     "unsaved": "%{path}, unsaved",
     "move_left": "Move Tab Left",
     "move_right": "Move Tab Right",
@@ -137,7 +137,7 @@
     "delete_comment": "Delete Comment",
     "copy_document": "Copy Document",
     "copy_full_document": "Copy entire document",
-    "copy_document_shortcut": "Copy Document · ⌘⇧C",
+    "copy_document_shortcut": "Copy Document · %{shortcut}",
     "hide_all_values": "Hide all values",
     "show_all_values": "Show all values",
     "quote_unquoted": "No quotes",
@@ -256,8 +256,7 @@
     "invalid_signature": "Could not construct the native quit signature.",
     "busy": "Quit protection is handling another request.",
     "already_installed": "Quit protection is already installed.",
-    "install_failed": "Could not install native quit protection.",
-    "unsupported": "Native quit protection is available only on macOS."
+    "install_failed": "Could not install native quit protection."
   },
   "component": {
     "Input": {

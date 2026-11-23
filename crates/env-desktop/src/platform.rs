@@ -313,9 +313,12 @@ pub use macos::{allow_quit, install_quit_guard};
 #[cfg(all(target_os = "macos", feature = "native"))]
 pub use macos::keep_qa_window_visible;
 
+/// Only AppKit can terminate the process behind the app's back (Cmd+Q, Dock
+/// Quit). Elsewhere the Quit action and the window close button already go
+/// through `AppWindow::request_close`, so there is nothing to guard.
 #[cfg(not(target_os = "macos"))]
 pub fn install_quit_guard(_: impl Fn() + 'static) -> Result<(), String> {
-    Err(crate::i18n::tr!("quit_guard.unsupported").into())
+    Ok(())
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -323,3 +326,12 @@ pub fn allow_quit() {}
 
 #[cfg(all(not(target_os = "macos"), feature = "native"))]
 pub fn keep_qa_window_visible() {}
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    #[test]
+    fn quit_guard_is_a_no_op_off_macos_so_the_app_keeps_running() {
+        assert_eq!(super::install_quit_guard(|| {}), Ok(()));
+        super::allow_quit();
+    }
+}

@@ -10,8 +10,8 @@ use crate::{
     session::QuoteStyle,
 };
 use gpui_kit::{
-    AssetSource, BoxShadow, Div, Img, ObjectFit, Result, SharedString, Styled, StyledImage, Svg,
-    div, img, px, rgb, svg,
+    AssetSource, BoxShadow, Div, Img, ObjectFit, OperatingSystem, Result, SharedString, Styled,
+    StyledImage, Svg, div, img, px, rgb, svg,
 };
 use std::{borrow::Cow, path::Path};
 
@@ -41,8 +41,26 @@ pub const CONTENT_INSET: f32 = 5.;
 pub const CONTENT_LEFT: f32 = 15.;
 pub const CONTENT_RIGHT: f32 = 10.;
 pub const CONTENT_TOP: f32 = 40.;
-pub const MONO_FONT: &str = "SF Mono";
-pub const UI_FONT: &str = ".AppleSystemUIFont";
+
+/// `(ui, monospace)` families installed by default on `os`. Linux uses GPUI's
+/// virtual `.SystemUIFont` and the family that GPUI itself defaults to.
+pub const fn font_families(os: OperatingSystem) -> (&'static str, &'static str) {
+    match os {
+        OperatingSystem::Mac => (".AppleSystemUIFont", "SF Mono"),
+        OperatingSystem::Windows => ("Segoe UI", "Consolas"),
+        _ => (".SystemUIFont", "DejaVu Sans Mono"),
+    }
+}
+
+const HOST_OS: OperatingSystem = if cfg!(target_os = "macos") {
+    OperatingSystem::Mac
+} else if cfg!(target_os = "windows") {
+    OperatingSystem::Windows
+} else {
+    OperatingSystem::Linux
+};
+pub const UI_FONT: &str = font_families(HOST_OS).0;
+pub const MONO_FONT: &str = font_families(HOST_OS).1;
 
 /// The same frame surrounds a value in both preview and edit mode.
 pub fn variable_field(commented: bool) -> Div {
@@ -471,5 +489,34 @@ mod tests {
         }
         assert!(!listed.iter().any(|name| name.contains("bbb88")));
         assert_eq!(Asset::Chevron.dimensions(), (7.99989, 4.42848));
+    }
+}
+
+#[cfg(test)]
+mod font_tests {
+    use super::{HOST_OS, MONO_FONT, UI_FONT, font_families};
+    use gpui_kit::OperatingSystem;
+
+    #[test]
+    fn fonts_follow_each_platform_and_macos_is_unchanged() {
+        assert_eq!(
+            font_families(OperatingSystem::Mac),
+            (".AppleSystemUIFont", "SF Mono")
+        );
+        assert_eq!(
+            font_families(OperatingSystem::Windows),
+            ("Segoe UI", "Consolas")
+        );
+        assert_eq!(
+            font_families(OperatingSystem::Linux),
+            (".SystemUIFont", "DejaVu Sans Mono")
+        );
+        assert_eq!(
+            font_families(OperatingSystem::FreeBsd),
+            font_families(OperatingSystem::Linux)
+        );
+        assert_eq!((UI_FONT, MONO_FONT), font_families(HOST_OS));
+        #[cfg(not(target_os = "macos"))]
+        assert!(!UI_FONT.contains("Apple") && MONO_FONT != "SF Mono");
     }
 }

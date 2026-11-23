@@ -185,7 +185,107 @@ pub(crate) fn app_env(suffix: &str) -> Option<std::ffi::OsString> {
         .or_else(|| std::env::var_os(format!("ENV_APP_{suffix}")))
 }
 
-#[cfg(any(target_os = "macos", test))]
+/// Operating-system family that decides where per-user configuration lives.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ConfigPlatform {
+    Mac,
+    Windows,
+    /// Linux and other XDG-style systems.
+    Unix,
+}
+
+impl ConfigPlatform {
+    pub(crate) const CURRENT: Self = if cfg!(target_os = "macos") {
+        Self::Mac
+    } else if cfg!(windows) {
+        Self::Windows
+    } else {
+        Self::Unix
+    };
+}
+
+/// Environment values consulted to locate configuration. Injected so that
+/// every platform's resolution is testable on any host.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ConfigEnv {
+    pub(crate) config_dir: Option<std::ffi::OsString>,
+    pub(crate) home: Option<std::ffi::OsString>,
+    pub(crate) userprofile: Option<std::ffi::OsString>,
+    pub(crate) appdata: Option<std::ffi::OsString>,
+    pub(crate) xdg_config_home: Option<std::ffi::OsString>,
+}
+
+impl ConfigEnv {
+    fn from_process() -> Self {
+        Self {
+            config_dir: app_env("CONFIG_DIR"),
+            home: std::env::var_os("HOME"),
+            userprofile: std::env::var_os("USERPROFILE"),
+            appdata: std::env::var_os("APPDATA"),
+            xdg_config_home: std::env::var_os("XDG_CONFIG_HOME"),
+        }
+    }
+}
+
+/// An unset or empty variable is treated as absent.
+fn non_empty(value: &Option<std::ffi::OsString>) -> Option<PathBuf> {
+    value
+        .as_ref()
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+}
+
+/// Windows uses the profile directory; every other platform uses HOME.
+pub(crate) fn home_directory_from(platform: ConfigPlatform, env: &ConfigEnv) -> Option<PathBuf> {
+    let home = non_empty(&env.home);
+    if platform == ConfigPlatform::Windows {
+        non_empty(&env.userprofile).or(home)
+    } else {
+        home
+    }
+}
+
+#[cfg(feature = "native")]
+pub(crate) fn home_directory() -> Option<PathBuf> {
+    home_directory_from(ConfigPlatform::CURRENT, &ConfigEnv::from_process())
+}
+
+/// `DOTVAR_CONFIG_DIR` wins everywhere. Otherwise: macOS keeps
+/// `~/Library/Application Support`, Windows uses `%APPDATA%\Dotvar` and
+/// Linux uses an absolute `$XDG_CONFIG_HOME/dotvar` or `~/.config/dotvar`.
+fn resolve_directory(platform: ConfigPlatform, env: &ConfigEnv) -> Result<PathBuf, ConfigError> {
+    let directory = if let Some(directory) = &env.config_dir {
+        PathBuf::from(directory)
+    } else {
+        let home = home_directory_from(platform, env);
+        match platform {
+            ConfigPlatform::Mac => default_directory(&home.ok_or(ConfigError::Unavailable)?)?,
+            ConfigPlatform::Windows => match non_empty(&env.appdata) {
+                Some(appdata) => appdata.join("Dotvar"),
+                None => home
+                    .ok_or(ConfigError::Unavailable)?
+                    .join("AppData")
+                    .join("Roaming")
+                    .join("Dotvar"),
+            },
+            ConfigPlatform::Unix => {
+                match non_empty(&env.xdg_config_home).filter(|directory| directory.is_absolute()) {
+                    Some(config) => config.join("dotvar"),
+                    None => home
+                        .ok_or(ConfigError::Unavailable)?
+                        .join(".config")
+                        .join("dotvar"),
+                }
+            }
+        }
+    };
+    if directory.is_absolute() {
+        Ok(directory)
+    } else {
+        Err(ConfigError::Unavailable)
+    }
+}
+
 fn default_directory(home: &Path) -> Result<PathBuf, ConfigError> {
     let support = home.join("Library/Application Support");
     let current = support.join("Dotvar");
@@ -203,24 +303,9 @@ impl ConfigStore {
         Self { directory }
     }
 
-    /// QA selects its own explicit directory. HOME is only read, never changed.
+    /// QA selects its own explicit directory. The environment is only read, never changed.
     pub fn platform_default() -> Result<Self, ConfigError> {
-        let directory = if let Some(directory) = app_env("CONFIG_DIR") {
-            PathBuf::from(directory)
-        } else {
-            #[cfg(target_os = "macos")]
-            {
-                let home = std::env::var_os("HOME").ok_or(ConfigError::Unavailable)?;
-                default_directory(Path::new(&home))?
-            }
-            #[cfg(not(target_os = "macos"))]
-            {
-                return Err(ConfigError::Unavailable);
-            }
-        };
-        if !directory.is_absolute() {
-            return Err(ConfigError::Unavailable);
-        }
+        let directory = resolve_directory(ConfigPlatform::CURRENT, &ConfigEnv::from_process())?;
         Ok(Self { directory })
     }
 
@@ -371,13 +456,26 @@ impl ConfigStore {
         }
         // Replacement is already visible. Subsequent failures are uncertain,
         // rather than falsely claiming that the previous catalog is intact.
-        File::open(&self.directory)
-            .and_then(|directory| directory.sync_all())
-            .map_err(|_| ConfigError::Uncertain)?;
+        sync_directory(&self.directory).map_err(|_| ConfigError::Uncertain)?;
         match Self::read_existing(path) {
             Ok(Some(actual)) if actual == bytes => Ok(()),
             _ => Err(ConfigError::Uncertain),
         }
+    }
+}
+
+/// Makes the rename durable. Windows cannot open a directory with `File::open`
+/// (it fails with access denied even though the replacement succeeded), and NTFS
+/// journals the rename itself, so there is nothing further to flush there.
+fn sync_directory(directory: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        let _ = directory;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        File::open(directory)?.sync_all()
     }
 }
 
@@ -579,8 +677,12 @@ mod tests {
         let directory = tempdir().unwrap();
         let store = ConfigStore::from_directory(directory.path().join("config"));
         fs::create_dir(&store.directory).unwrap();
-        let file = File::create(store.path()).unwrap();
-        file.set_len(MAX_BYTES + 1).unwrap();
+        // The handle is closed before the reset replaces the file: Windows refuses to
+        // replace a file that is still open.
+        File::create(store.path())
+            .unwrap()
+            .set_len(MAX_BYTES + 1)
+            .unwrap();
         assert_eq!(store.load().unwrap_err(), ConfigError::Invalid);
         assert_eq!(store.save(&Catalog::default()), Err(ConfigError::Invalid));
         assert_eq!(fs::metadata(store.path()).unwrap().len(), MAX_BYTES + 1);
@@ -596,5 +698,150 @@ mod tests {
             assert_eq!(store.reset(&Catalog::default()), Err(ConfigError::Invalid));
             assert_eq!(fs::read(outside).unwrap(), b"synthetic-reference-only");
         }
+    }
+
+    fn env(entries: &[(&str, &Path)]) -> ConfigEnv {
+        let mut env = ConfigEnv::default();
+        for (name, value) in entries {
+            let value = Some(value.as_os_str().to_owned());
+            match *name {
+                "config_dir" => env.config_dir = value,
+                "home" => env.home = value,
+                "userprofile" => env.userprofile = value,
+                "appdata" => env.appdata = value,
+                "xdg" => env.xdg_config_home = value,
+                _ => unreachable!(),
+            }
+        }
+        env
+    }
+
+    #[test]
+    fn windows_directory_is_dotvar_under_appdata() {
+        let base = tempdir().unwrap();
+        let appdata = base.path().join("Roaming");
+        let profile = base.path().join("profile");
+        let resolved = resolve_directory(
+            ConfigPlatform::Windows,
+            &env(&[("appdata", &appdata), ("userprofile", &profile)]),
+        );
+        assert_eq!(resolved, Ok(appdata.join("Dotvar")));
+        // Without APPDATA the standard Roaming location under the profile is used.
+        let resolved =
+            resolve_directory(ConfigPlatform::Windows, &env(&[("userprofile", &profile)]));
+        assert_eq!(
+            resolved,
+            Ok(profile.join("AppData").join("Roaming").join("Dotvar"))
+        );
+        assert_eq!(
+            resolve_directory(ConfigPlatform::Windows, &ConfigEnv::default()),
+            Err(ConfigError::Unavailable)
+        );
+    }
+
+    #[test]
+    fn unix_directory_follows_absolute_xdg_config_home_then_dot_config() {
+        let base = tempdir().unwrap();
+        let xdg = base.path().join("xdg");
+        let home = base.path().join("home");
+        assert_eq!(
+            resolve_directory(
+                ConfigPlatform::Unix,
+                &env(&[("xdg", &xdg), ("home", &home)])
+            ),
+            Ok(xdg.join("dotvar"))
+        );
+        assert_eq!(
+            resolve_directory(ConfigPlatform::Unix, &env(&[("home", &home)])),
+            Ok(home.join(".config").join("dotvar"))
+        );
+        // A relative or empty XDG_CONFIG_HOME is ignored, as the spec requires.
+        for ignored in [Path::new("relative/config"), Path::new("")] {
+            assert_eq!(
+                resolve_directory(
+                    ConfigPlatform::Unix,
+                    &env(&[("xdg", ignored), ("home", &home)])
+                ),
+                Ok(home.join(".config").join("dotvar"))
+            );
+        }
+        assert_eq!(
+            resolve_directory(
+                ConfigPlatform::Unix,
+                &env(&[("xdg", Path::new("relative"))])
+            ),
+            Err(ConfigError::Unavailable)
+        );
+    }
+
+    #[test]
+    fn explicit_config_directory_overrides_every_platform_and_must_be_absolute() {
+        let base = tempdir().unwrap();
+        let chosen = base.path().join("chosen");
+        let other = base.path().join("other");
+        for platform in [
+            ConfigPlatform::Mac,
+            ConfigPlatform::Windows,
+            ConfigPlatform::Unix,
+        ] {
+            let all = env(&[
+                ("config_dir", &chosen),
+                ("home", &other),
+                ("appdata", &other),
+                ("xdg", &other),
+            ]);
+            assert_eq!(resolve_directory(platform, &all), Ok(chosen.clone()));
+            assert_eq!(
+                resolve_directory(platform, &env(&[("config_dir", Path::new("relative"))])),
+                Err(ConfigError::Unavailable)
+            );
+        }
+    }
+
+    #[test]
+    fn mac_directory_keeps_application_support_and_legacy_reuse() {
+        let home = tempdir().unwrap();
+        let support = home.path().join("Library/Application Support");
+        let resolved =
+            |home: &Path| resolve_directory(ConfigPlatform::Mac, &env(&[("home", home)]));
+        assert_eq!(resolved(home.path()), Ok(support.join("Dotvar")));
+        fs::create_dir_all(support.join("Env")).unwrap();
+        assert_eq!(resolved(home.path()), Ok(support.join("Env")));
+        assert_eq!(
+            resolve_directory(ConfigPlatform::Mac, &ConfigEnv::default()),
+            Err(ConfigError::Unavailable)
+        );
+    }
+
+    #[test]
+    fn home_directory_prefers_userprofile_only_on_windows() {
+        let base = tempdir().unwrap();
+        let home = base.path().join("home");
+        let profile = base.path().join("profile");
+        let both = env(&[("home", &home), ("userprofile", &profile)]);
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Windows, &both),
+            Some(profile)
+        );
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Unix, &both),
+            Some(home.clone())
+        );
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Mac, &both),
+            Some(home.clone())
+        );
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Windows, &env(&[("home", &home)])),
+            Some(home)
+        );
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Windows, &ConfigEnv::default()),
+            None
+        );
+        assert_eq!(
+            home_directory_from(ConfigPlatform::Unix, &env(&[("home", Path::new(""))])),
+            None
+        );
     }
 }

@@ -48,10 +48,24 @@ fn shortcut_key() -> Div {
         .flex()
         .items_center()
         .justify_center()
-        .size(px(24.))
+        .min_w(px(24.))
+        .h(px(24.))
         .flex_shrink_0()
         .rounded(px(4.))
         .bg(rgb(CONTENT_BG))
+}
+
+/// The modifier of the open shortcut: the Command glyph on macOS, "Ctrl" elsewhere.
+fn primary_modifier_key() -> AnyElement {
+    if cfg!(target_os = "macos") {
+        design::asset(Asset::Command).into_any_element()
+    } else {
+        Label::new("Ctrl")
+            .text_size(px(12.))
+            .font_weight(FontWeight::MEDIUM)
+            .text_color(rgb(SECONDARY))
+            .into_any_element()
+    }
 }
 
 impl AppWindow {
@@ -99,7 +113,7 @@ impl AppWindow {
                                     .flex()
                                     .items_center()
                                     .gap(px(8.))
-                                    .child(shortcut_key().child(design::asset(Asset::Command)))
+                                    .child(shortcut_key().child(primary_modifier_key()))
                                     .child(
                                         shortcut_key().child(
                                             Label::new("O")

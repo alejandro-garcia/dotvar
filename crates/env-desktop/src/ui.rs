@@ -654,7 +654,13 @@ impl Render for AppWindow {
             .and_then(|p| p.root.file_name())
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_else(|| tr!("project.choose").into());
+        let close_window = cx.weak_entity();
         let title = TitleBar::new()
+            // Linux draws its own close button, which would otherwise skip the
+            // unsaved-change prompt.
+            .on_close_window(move |_, window, cx| {
+                let _ = close_window.update(cx, |this, cx| this.request_close(window, cx));
+            })
             .h(px(design::TITLE_HEIGHT))
             .pl_0()
             .bg(rgb(WINDOW_BG))
@@ -933,7 +939,10 @@ impl Render for AppWindow {
                                                     } else {
                                                         tr!("tab.close")
                                                     })
-                                                    .tooltip(tr!("tab.close_shortcut"))
+                                                    .tooltip(tr!(
+                                                        "tab.close_shortcut",
+                                                        shortcut = i18n::shortcut(false, "W")
+                                                    ))
                                                     .child(design::asset(if close_hovered {
                                                         Asset::CloseHover
                                                     } else if tab.dirty() && !hovered {
@@ -1036,7 +1045,10 @@ impl Render for AppWindow {
             .child(
                 action_icons::button("copy-document", cx)
                     .accessibility_label(tr!("editor.copy_full_document"))
-                    .tooltip(tr!("editor.copy_document_shortcut"))
+                    .tooltip(tr!(
+                        "editor.copy_document_shortcut",
+                        shortcut = i18n::shortcut(true, "C")
+                    ))
                     .child(action_icons::swap(
                         format!("copy-document-{tab_id}"),
                         ActionIcon::Duplicate,
