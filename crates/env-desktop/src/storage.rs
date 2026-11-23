@@ -1545,6 +1545,34 @@ mod windows_tests {
         windows::owner_only_sddl().unwrap()
     }
 
+    /// The OS abbreviates well-known SIDs (SYSTEM as `SY`, the built-in
+    /// Administrator as `LA`, ...) when it renders a DACL, so the expected DACL
+    /// must use the same rendering or saves fail for those accounts.
+    #[test]
+    fn expected_dacl_uses_the_same_sid_aliases_as_the_os() {
+        assert_eq!(
+            windows::canonical_dacl("D:P(A;;FA;;;S-1-5-18)").unwrap(),
+            "D:P(A;;FA;;;SY)"
+        );
+        assert_eq!(
+            windows::canonical_dacl("D:P(A;;FA;;;S-1-5-32-544)").unwrap(),
+            "D:P(A;;FA;;;BA)"
+        );
+        let owner = owner_only();
+        assert_eq!(windows::canonical_dacl(&owner).unwrap(), owner);
+    }
+
+    /// A private file must read back exactly the expected owner-only DACL for
+    /// whatever account runs the app; on mismatch both renderings are shown.
+    #[test]
+    fn private_files_read_back_the_expected_owner_only_dacl() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("private.env");
+        drop(windows::create_private(&path).unwrap());
+        let info = windows::path_info(&path, true).unwrap();
+        assert_eq!(info.dacl.as_deref(), Some(owner_only().as_str()));
+    }
+
     /// Grants Everyone read access, optionally inheritable (for directories).
     fn grant_everyone_read(path: &Path, inheritable: bool) {
         let rights = if inheritable { "(OI)(CI)(R)" } else { "(R)" };

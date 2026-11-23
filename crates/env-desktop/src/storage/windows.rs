@@ -169,9 +169,29 @@ pub(super) fn current_user_sid() -> io::Result<String> {
 }
 
 /// SDDL of the DACL that grants the current user, and nobody else, full access.
-/// The `P` flag blocks inheritance from the parent directory.
+/// The `P` flag blocks inheritance from the parent directory. It is rendered by
+/// the OS, so well-known accounts use the same aliases as `dacl_of`.
 pub(super) fn owner_only_sddl() -> io::Result<String> {
-    Ok(format!("D:P(A;;FA;;;{})", current_user_sid()?))
+    canonical_dacl(&format!("D:P(A;;FA;;;{})", current_user_sid()?))
+}
+
+/// Render a DACL the way the OS renders a file's DACL: well-known SIDs become
+/// aliases (for example `SY` or `LA`) and the inheritance bookkeeping flags are
+/// dropped, so two DACLs that grant the same access compare equal as text.
+pub(super) fn canonical_dacl(sddl: &str) -> io::Result<String> {
+    let text = wide_text(sddl);
+    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
+    // SAFETY: `text` is NUL-terminated; `descriptor` is a valid out pointer.
+    check(unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            text.as_ptr(),
+            SDDL_REVISION_1,
+            &mut descriptor,
+            null_mut(),
+        )
+    })?;
+    let _free = LocalMemory(descriptor);
+    dacl_text(descriptor)
 }
 
 /// Create a new file whose protected DACL grants only the current user. The
@@ -223,8 +243,13 @@ fn dacl_of(file: &File) -> io::Result<String> {
         return Err(io::Error::from_raw_os_error(status as i32));
     }
     let _free = LocalMemory(descriptor);
+    dacl_text(descriptor)
+}
+
+/// SDDL of the DACL in `descriptor`, without the `AI`/`AR` flags.
+fn dacl_text(descriptor: PSECURITY_DESCRIPTOR) -> io::Result<String> {
     let mut text: *mut u16 = null_mut();
-    // SAFETY: `descriptor` was just returned by GetSecurityInfo and is alive.
+    // SAFETY: the caller keeps `descriptor` alive for the duration of the call.
     check(unsafe {
         ConvertSecurityDescriptorToStringSecurityDescriptorW(
             descriptor,
