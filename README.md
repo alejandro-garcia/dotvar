@@ -4,14 +4,14 @@
 
 # Dotvar
 
-Dotvar is a blazing-fast, privacy-first `.env` editor for macOS. Keep your project's environment files in one window, find the variable you need, and make precise edits that preserve the file's original formatting.
+Dotvar is a blazing-fast, privacy-first `.env` editor for macOS, with Windows and Linux builds from source. Keep your project's environment files in one window, find the variable you need, and make precise edits that preserve the file's original formatting.
 
 ## Why Dotvar?
 
 - ⚡ **Skip the full IDE.** Dotvar used 93% less memory at idle than VS Code in our [benchmark](docs/resource-benchmark.md).
 - 📂 **Go straight to the variable.** Open a folder, pick an environment, and search by name.
 - 🔒 **Keep secrets offscreen.** Values are hidden by default. Reveal just the one you need.
-- 📴 **Work entirely offline.** Dotvar reads and edits your secrets locally on your Mac.
+- 📴 **Work entirely offline.** Dotvar reads and edits your secrets locally on your computer.
 - 📝 **Keep your file exactly as written.** Edit one value and everything else stays byte-for-byte identical.
 
 ## Features
@@ -33,7 +33,7 @@ Each pair of bars uses VS Code as the 100% baseline. The benchmark ran on an M2 
 ## Built with Rust and GPUI
 
 - **Rust** gives the file editor a memory-safe foundation. Each edit updates only the relevant bytes, keeping the rest of the file intact.
-- **GPUI**, through **GPUI Kit**, powers the native macOS interface with GPU-accelerated rendering.
+- **GPUI**, through **GPUI Kit**, powers the native interface on macOS, Windows, and Linux with GPU-accelerated rendering.
 
 ## Get started on macOS
 
@@ -58,21 +58,31 @@ DOTVAR_CONFIG_DIR="$demo_dir/config" cargo run -p env-desktop --locked -- "$demo
 
 To create a local `Dotvar.app`, run `python3 scripts/package-macos.py` and open `dist/Dotvar.app`. See the [development guide](CONTRIBUTING.md) for build requirements, tests, and packaging.
 
+## Build on Windows or Linux
+
+Windows 10 or later and Linux desktops with Wayland or X11 run Dotvar from source. Release downloads are macOS-only for now. Install [Rust with rustup](https://rustup.rs/). On Windows, also install the Visual Studio C++ build tools. On Linux, install the system libraries listed in the [development guide](CONTRIBUTING.md#development-setup). Then run:
+
+```sh
+rustup toolchain install --no-self-update
+cargo run -p env-desktop --locked
+```
+
 ## Working with `.env` files
 
-| Action | Shortcut |
-| --- | --- |
-| Open a file or folder | **⌘O** |
-| Add a project | **⇧⌘O** |
-| Switch projects | **⌘K** |
-| Switch to a tab by position | **⌘1**–**⌘9** |
-| Find a variable | **⌘F** |
-| Save / Save As | **⌘S** / **⇧⌘S** |
-| Copy the working document | **⇧⌘C** |
+| Action | macOS | Windows and Linux |
+| --- | --- | --- |
+| Open a file or folder | **⌘O** | **Ctrl+O** |
+| Add a project | **⇧⌘O** | **Ctrl+Shift+O** |
+| Switch projects | **⌘K** | **Ctrl+K** |
+| Switch to a tab by position | **⌘1**–**⌘9** | **Ctrl+1**–**Ctrl+9** |
+| Find a variable | **⌘F** | **Ctrl+F** |
+| Save / Save As | **⌘S** / **⇧⌘S** | **Ctrl+S** / **Ctrl+Shift+S** |
+| Copy the working document | **⇧⌘C** | **Ctrl+Shift+C** |
+| Settings / Quit | **⌘,** / **⌘Q** | **Ctrl+,** / **Ctrl+Q** |
 
 Drag tabs to reorder them within a project. Tab shortcuts follow the new order.
 
-Copy actions write literal values to the macOS clipboard, including hidden values. The local catalog stores file and project paths, tab order, and selection. Preferences are stored alongside it in `~/Library/Application Support/Dotvar`.
+Copy actions write literal values to the system clipboard, including hidden values. The local catalog stores file and project paths, tab order, and selection. Preferences are stored alongside it in `~/Library/Application Support/Dotvar` on macOS, `%APPDATA%\Dotvar` on Windows, and `$XDG_CONFIG_HOME/dotvar` (default `~/.config/dotvar`) on Linux.
 
 Dotvar preserves comments, untouched whitespace, line endings, and UTF-8 BOMs. It treats variables, escapes, and shell expressions as literal text. Ambiguous syntax is kept as opaque text, and files with invalid UTF-8 open read-only. See the [dotenv grammar and editing guarantees](crates/env-core/README.md).
 

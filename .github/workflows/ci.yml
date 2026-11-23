@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   verify:
-    runs-on: macos-26
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
       CARGO_INCREMENTAL: '0'
@@ -20,6 +25,11 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+      - name: Install Linux system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libx11-xcb-dev libfontconfig-dev libfreetype-dev libvulkan1
       - name: Install the pinned Rust toolchain
         run: rustup toolchain install --no-self-update
       - name: Check formatting
