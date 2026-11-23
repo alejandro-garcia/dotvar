@@ -177,8 +177,10 @@ fn open(preferences: &Entity<AppSettings>, cx: &mut App) -> Option<AnyWindowHand
         ))),
         titlebar: Some(TitlebarOptions {
             title: Some(tr!("settings.title").into()),
-            appears_transparent: true,
-            traffic_light_position: Some(point(px(9.), px(9.))),
+            // Only macOS draws the content under a transparent title bar; elsewhere the
+            // system title bar keeps the window draggable and closable.
+            appears_transparent: cfg!(target_os = "macos"),
+            traffic_light_position: cfg!(target_os = "macos").then(|| point(px(9.), px(9.))),
         }),
         app_id: Some(BUNDLE_ID.into()),
         is_minimizable: false,

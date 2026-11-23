@@ -100,7 +100,7 @@
     "rename_pending": "Esperá a que termine el renombre del archivo.",
     "close": "Cerrar pestaña",
     "close_unsaved": "Cerrar pestaña, sin guardar",
-    "close_shortcut": "Cerrar pestaña · ⌘W",
+    "close_shortcut": "Cerrar pestaña · %{shortcut}",
     "unsaved": "%{path}, sin guardar",
     "move_left": "Mover pestaña a la izquierda",
     "move_right": "Mover pestaña a la derecha",
@@ -137,7 +137,7 @@
     "delete_comment": "Eliminar comentario",
     "copy_document": "Copiar documento",
     "copy_full_document": "Copiar documento completo",
-    "copy_document_shortcut": "Copiar documento · ⌘⇧C",
+    "copy_document_shortcut": "Copiar documento · %{shortcut}",
     "hide_all_values": "Ocultar todos los valores",
     "show_all_values": "Mostrar todos los valores",
     "quote_unquoted": "Sin comillas",
@@ -256,8 +256,7 @@
     "invalid_signature": "No se pudo construir la firma nativa de salida.",
     "busy": "La protección de salida está procesando otra solicitud.",
     "already_installed": "La protección de salida ya fue instalada.",
-    "install_failed": "No se pudo agregar la protección nativa de salida.",
-    "unsupported": "La protección de salida nativa está implementada solamente en macOS."
+    "install_failed": "No se pudo agregar la protección nativa de salida."
   },
   "component": {
     "Input": {

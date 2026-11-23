@@ -253,7 +253,7 @@ impl AppWindow {
             .projects
             .get(self.active_project)
             .map(|p| p.root.clone())
-            .or_else(|| std::env::var_os("HOME").map(PathBuf::from))
+            .or_else(crate::config::home_directory)
             .unwrap_or_else(std::env::temp_dir);
         let receiver = cx.prompt_for_new_path(&root, Some(".env"));
         let handle = window.window_handle();

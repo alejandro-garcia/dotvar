@@ -752,7 +752,7 @@ mod tests {
     use super::{
         BTreeMap, DocumentSession, FileTab, Path, Project, ScrollHandle, TabReference, UiError,
         finish_create_destination, is_pending_file_destination, reserve_create_destination,
-        resolve_create_destination, storage,
+        storage,
     };
     use crate::session::QuoteStyle;
     use env_core::BlockKind;
@@ -877,6 +877,7 @@ mod tests {
         assert!(std::fs::read(path).unwrap().is_empty());
     }
 
+    #[cfg(unix)]
     #[test]
     fn create_destination_rejects_a_picker_alias_before_writing() {
         let dir = tempfile::tempdir().unwrap();
@@ -892,7 +893,7 @@ mod tests {
         let projects = [project(1, &project_root, vec![reference(1, &path)])];
         let mut pending = None;
         assert!(reserve_create_destination(&projects, &documents, &mut pending, &picked).is_ok());
-        let resolved = resolve_create_destination(&picked).unwrap();
+        let resolved = super::resolve_create_destination(&picked).unwrap();
         assert_eq!(resolved, path);
         let confirmation = pending
             .as_mut()

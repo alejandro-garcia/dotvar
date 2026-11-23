@@ -21,6 +21,43 @@ macro_rules! tr {
 }
 pub(crate) use tr;
 
+/// How keyboard shortcuts are written for display.
+#[cfg(any(feature = "native", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ShortcutStyle {
+    /// Modifier glyphs, as in `⌘⇧C`.
+    Mac,
+    /// Written-out modifiers, as in `Ctrl+Shift+C`.
+    Other,
+}
+
+#[cfg(any(feature = "native", test))]
+impl ShortcutStyle {
+    #[cfg(feature = "native")]
+    pub(crate) const CURRENT: Self = if cfg!(target_os = "macos") {
+        Self::Mac
+    } else {
+        Self::Other
+    };
+}
+
+/// Text of the primary-modifier shortcut for `key`, e.g. `⌘W` or `Ctrl+W`.
+#[cfg(any(feature = "native", test))]
+pub(crate) fn shortcut_label(style: ShortcutStyle, shift: bool, key: &str) -> String {
+    match (style, shift) {
+        (ShortcutStyle::Mac, false) => format!("⌘{key}"),
+        (ShortcutStyle::Mac, true) => format!("⌘⇧{key}"),
+        (ShortcutStyle::Other, false) => format!("Ctrl+{key}"),
+        (ShortcutStyle::Other, true) => format!("Ctrl+Shift+{key}"),
+    }
+}
+
+/// The shortcut text for the platform this build runs on.
+#[cfg(feature = "native")]
+pub(crate) fn shortcut(shift: bool, key: &str) -> String {
+    shortcut_label(ShortcutStyle::CURRENT, shift, key)
+}
+
 #[cfg(feature = "native")]
 pub(crate) fn text(key: &'static str) -> std::borrow::Cow<'static, str> {
     rust_i18n::t!(key, locale = locale())
@@ -203,6 +240,51 @@ mod tests {
         assert_eq!(
             gpui_kit::component::_rust_i18n_translate("es", "Input.Select All"),
             "Seleccionar todo"
+        );
+    }
+}
+
+#[cfg(test)]
+mod shortcut_tests {
+    use super::*;
+
+    #[test]
+    fn shortcuts_render_glyphs_on_macos_and_words_elsewhere() {
+        assert_eq!(shortcut_label(ShortcutStyle::Mac, false, "W"), "⌘W");
+        assert_eq!(shortcut_label(ShortcutStyle::Mac, true, "C"), "⌘⇧C");
+        assert_eq!(shortcut_label(ShortcutStyle::Other, false, "W"), "Ctrl+W");
+        assert_eq!(
+            shortcut_label(ShortcutStyle::Other, true, "C"),
+            "Ctrl+Shift+C"
+        );
+    }
+
+    #[test]
+    fn tooltips_take_their_shortcut_from_a_placeholder_instead_of_a_hardcoded_glyph() {
+        for json in [
+            include_str!("../locales/en.json"),
+            include_str!("../locales/es.json"),
+        ] {
+            assert!(!json.contains(['⌘', '⇧', '⌥', '⌃']));
+        }
+        let rendered = |key: &str, locale: &str| {
+            rust_i18n::t!(key, locale = locale, shortcut = "Ctrl+Shift+C").into_owned()
+        };
+        assert_eq!(
+            rendered("tab.close_shortcut", "en"),
+            "Close Tab · Ctrl+Shift+C"
+        );
+        assert_eq!(
+            rendered("tab.close_shortcut", "es"),
+            "Cerrar pestaña · Ctrl+Shift+C"
+        );
+        assert_eq!(
+            rendered("editor.copy_document_shortcut", "en"),
+            "Copy Document · Ctrl+Shift+C"
+        );
+        assert_eq!(
+            rendered("editor.copy_document_shortcut", "es"),
+            "Copiar documento · Ctrl+Shift+C"
         );
     }
 }

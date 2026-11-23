@@ -463,7 +463,7 @@ impl AppWindow {
                 cx.stop_propagation();
                 cx.notify();
             } else if event.keystroke.key == "enter"
-                && (event.keystroke.modifiers.platform
+                && (event.keystroke.modifiers.secondary(cx)
                     || dialog.name.read(cx).focus_handle(cx).is_focused(window))
             {
                 self.apply_rename(window, cx);
