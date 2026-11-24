@@ -1,10 +1,12 @@
 # Contributing to Dotvar
 
-Use English for issues, pull requests, and documentation. For a bug report, include your macOS version, the Dotvar version or commit, and steps to reproduce it. Use a synthetic fixture for dotenv issues and remove credentials and personal paths from reports, logs, and screenshots.
+Use English for issues, pull requests, and documentation. For a bug report, include your operating system and version, the Dotvar version or commit, and steps to reproduce it. Use a synthetic fixture for dotenv issues and remove credentials and personal paths from reports, logs, and screenshots.
 
 ## Development setup
 
-- Apple Silicon Mac with Xcode selected as the active developer directory.
+- macOS: Apple Silicon Mac with Xcode selected as the active developer directory.
+- Windows: Windows 10 or later with the Visual Studio C++ build tools.
+- Linux: a C toolchain and the GPUI system libraries. On Ubuntu or Debian: `sudo apt-get install pkg-config libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libx11-xcb-dev libfontconfig-dev libfreetype-dev libvulkan1`.
 - [Rustup](https://rustup.rs/). The repository pins Rust 1.100.0 with `rustfmt` and `clippy` in [`rust-toolchain.toml`](rust-toolchain.toml). Cargo uses the checked-in lockfile.
 - Python 3 for packaging and fixture scripts.
 
@@ -19,14 +21,15 @@ The first build fetches and compiles dependencies. The desktop crate uses [GPUI 
 ## How the editor works
 
 - [`env-core`](crates/env-core/README.md) splits the source into assignments, comments, blank lines, and opaque blocks. Edits apply range patches to the original bytes and update the undo history.
-- The desktop session tracks saved bytes, working edits, and drafts. When saving, it checks the file against its saved snapshot, writes a private temporary file beside the original, syncs it, rechecks the target, and verifies the replacement. Hard links and macOS access metadata that cannot be preserved block replacement. **Save As** creates a new file with private permissions and rejects existing paths.
+- The desktop session tracks saved bytes, working edits, and drafts. When saving, it checks the file against its saved snapshot, writes a private temporary file beside the original, syncs it, rechecks the target, and verifies the replacement. Hard links and access metadata that cannot be preserved block replacement: macOS extended access metadata, Linux POSIX ACLs, and read-only files. On Windows the temporary file gets an owner-only DACL and `ReplaceFileW` keeps the original's ACL, attributes, and alternate data streams. **Save As** creates a new file with private permissions and rejects existing paths.
+- Keyboard shortcuts use the `secondary-` modifier, which is ⌘ on macOS and Ctrl on Windows and Linux.
 - The file watcher monitors project directories without recursion. External edits reload clean documents and mark dirty documents as conflicted. A conflict preserves unsaved work until the user reloads or saves a copy.
 - The catalog persists project and file paths, order, and selection. Drafts and undo history are kept in memory and are lost if the app is forcibly closed. `DOTVAR_CONFIG_DIR` selects an isolated catalog for testing.
 - UI strings live in [`locales/en.json`](crates/env-desktop/locales/en.json) and [`locales/es.json`](crates/env-desktop/locales/es.json). Keep message keys and interpolation placeholders aligned.
 
 ## Verify changes
 
-Run these commands from the repository root on an Apple Silicon Mac:
+Run these commands from the repository root. CI runs them on macOS, Ubuntu, and Windows:
 
 ```sh
 cargo fmt --all -- --check
@@ -34,7 +37,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 ```
 
-To work on the parser independently of the UI, run `cargo test -p env-core --locked`. To exercise the desktop library without the native UI, run `cargo test -p env-desktop --lib --no-default-features --locked`.
+Some storage tests are platform-specific: macOS covers extended attributes, Linux covers POSIX ACLs, and Windows covers DACLs, file attributes, and alternate data streams. The trash tests move a synthetic file to the system Trash or Recycle Bin. To work on the parser independently of the UI, run `cargo test -p env-core --locked`. To exercise the desktop library without the native UI, run `cargo test -p env-desktop --lib --no-default-features --locked`.
 
 For manual checks, generate fixtures in a fresh temporary directory:
 

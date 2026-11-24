@@ -6,6 +6,14 @@ This file tracks notable changes to Dotvar. It follows
 
 ## [Unreleased]
 
+### Added
+
+- Build and run Dotvar from source on Windows and Linux. Shortcuts use Ctrl, settings live in `%APPDATA%\Dotvar` or `$XDG_CONFIG_HOME/dotvar`, saving keeps file permissions, and Move to Trash uses the Recycle Bin or the freedesktop Trash.
+
+### Changed
+
+- CI checks formatting, lints, and tests on macOS, Ubuntu, and Windows.
+
 ## [0.3.2] - 2026-11-19
 
 ### Fixed
