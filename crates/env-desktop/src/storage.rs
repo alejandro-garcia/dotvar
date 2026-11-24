@@ -1562,6 +1562,44 @@ mod windows_tests {
         assert_eq!(windows::canonical_dacl(&owner).unwrap(), owner);
     }
 
+    /// On GitHub's windows-2025 runner, ReplaceFileW turned the inherited ACEs of
+    /// the original into explicit copies next to the re-inherited ones. Access is
+    /// identical, so the comparison form must treat both DACLs as equal, while a
+    /// new grant, a removed grant or a change in protection still differs.
+    #[test]
+    fn access_form_ignores_inheritance_bookkeeping_but_not_grants() {
+        let before = "D:(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;LA)";
+        let after =
+            "D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;LA)(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;LA)";
+        assert_eq!(windows::access_form(before), windows::access_form(after));
+        assert_eq!(
+            windows::access_form("D:AI(A;ID;FA;;;SY)"),
+            windows::access_form("D:(A;;FA;;;SY)")
+        );
+        let broader = "D:(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;LA)(A;;FR;;;WD)";
+        assert_ne!(windows::access_form(before), windows::access_form(broader));
+        let narrower = "D:(A;ID;FA;;;SY)(A;ID;FA;;;BA)";
+        assert_ne!(windows::access_form(before), windows::access_form(narrower));
+        let protected = "D:P(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;LA)";
+        assert_ne!(
+            windows::access_form(before),
+            windows::access_form(protected)
+        );
+        assert_ne!(
+            windows::access_form("D:(D;;FA;;;WD)(A;;FA;;;SY)"),
+            windows::access_form("D:(A;;FA;;;WD)(A;;FA;;;SY)")
+        );
+        assert_ne!(
+            windows::access_form("D:(D;;FA;;;WD)(A;;FA;;;WD)"),
+            windows::access_form("D:(A;;FA;;;WD)(D;;FA;;;WD)")
+        );
+        let inheritable = "D:(A;OICIID;FA;;;SY)";
+        assert_ne!(
+            windows::access_form(inheritable),
+            windows::access_form("D:(A;ID;FA;;;SY)")
+        );
+    }
+
     /// A private file must read back exactly the expected owner-only DACL for
     /// whatever account runs the app; on mismatch both renderings are shown.
     #[test]
