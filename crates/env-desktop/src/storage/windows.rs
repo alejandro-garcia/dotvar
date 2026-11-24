@@ -261,20 +261,51 @@ fn dacl_text(descriptor: PSECURITY_DESCRIPTOR) -> io::Result<String> {
     })?;
     let _free_text = LocalMemory(text.cast());
     // SAFETY: the API returned a NUL-terminated UTF-16 string.
-    Ok(without_auto_inherit_flags(&unsafe {
-        string_from_wide(text)
-    }))
+    Ok(access_form(&unsafe { string_from_wide(text) }))
 }
 
 /// ReplaceFileW keeps the ACEs of the replaced file but may set or clear the
 /// `AI`/`AR` bookkeeping flags of the inheritance engine. They grant nothing, so
 /// they are left out to compare what the DACL allows.
-fn without_auto_inherit_flags(sddl: &str) -> String {
+///
+/// It may also turn inherited ACEs into explicit copies kept next to the
+/// re-inherited ones (seen on GitHub's windows-2025 runner). An ACE grants the
+/// same access whether it is inherited or explicit, so the `ID` flag is dropped
+/// and later duplicates collapse onto their first occurrence. Protection (`P`),
+/// every grant, its order (Windows evaluates ACEs in sequence) and how it
+/// propagates to children still take part in the comparison. Unusual SDDL (for example
+/// conditional ACEs) is returned unchanged, so it can only compare as different.
+pub(super) fn access_form(sddl: &str) -> String {
     let Some(rest) = sddl.strip_prefix("D:") else {
         return sddl.to_owned();
     };
     let (flags, entries) = rest.split_at(rest.find('(').unwrap_or(rest.len()));
-    format!("D:{}{entries}", flags.replace("AI", "").replace("AR", ""))
+    let flags = flags.replace("AI", "").replace("AR", "");
+    let Some(inner) = entries
+        .strip_prefix('(')
+        .and_then(|entries| entries.strip_suffix(')'))
+    else {
+        return format!("D:{flags}{entries}");
+    };
+    let mut aces = Vec::new();
+    for ace in inner.split(")(") {
+        let mut fields: Vec<&str> = ace.split(';').collect();
+        if ace.contains(['(', ')']) || fields.len() < 6 || !fields[1].len().is_multiple_of(2) {
+            return format!("D:{flags}{entries}");
+        }
+        let ace_flags: String = fields[1]
+            .as_bytes()
+            .chunks(2)
+            .filter(|flag| *flag != b"ID")
+            .map(|flag| String::from_utf8_lossy(flag).into_owned())
+            .collect();
+        fields[1] = &ace_flags;
+        let ace = format!("({})", fields.join(";"));
+        if !aces.contains(&ace) {
+            aces.push(ace);
+        }
+    }
+    format!("D:{flags}{}", aces.concat())
 }
 
 /// Identity, link count, attributes and DACL of an open file. A DACL that cannot
