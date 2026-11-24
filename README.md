@@ -76,6 +76,8 @@ cargo run -p env-desktop --locked
 | Switch projects | **⌘K** | **Ctrl+K** |
 | Switch to a tab by position | **⌘1**–**⌘9** | **Ctrl+1**–**Ctrl+9** |
 | Find a variable | **⌘F** | **Ctrl+F** |
+| Edit the value of the found variable (in Find) | **Return** | **Enter** |
+| Next / previous match (in Find) | **⌘G** / **⇧⌘G** | **Ctrl+G** / **Ctrl+Shift+G** |
 | Save / Save As | **⌘S** / **⇧⌘S** | **Ctrl+S** / **Ctrl+Shift+S** |
 | Copy the working document | **⇧⌘C** | **Ctrl+Shift+C** |
 | Settings / Quit | **⌘,** / **⌘Q** | **Ctrl+,** / **Ctrl+Q** |
