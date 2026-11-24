@@ -294,6 +294,9 @@ impl AppWindow {
         cx.notify();
     }
     pub(super) fn toggle_all(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.dialog.is_some() {
+            return;
+        }
         self.finish_editor(false, window, cx);
         if let Some(tab) = self.active_tab_mut() {
             toggle_all_value_visibility(

@@ -8,6 +8,7 @@ This file tracks notable changes to Dotvar. It follows
 
 ### Added
 
+- Press **⇧⌘H** (**Ctrl+Shift+H** on Windows and Linux) to show all values when any is hidden, or hide them all when everything is visible, like the eye button.
 - Press **Enter** in Find to edit the value of the highlighted match right away; hidden values are revealed while editing. Enter no longer jumps to the next match: use **Ctrl+G** (next) and **Ctrl+Shift+G** or **Shift+Enter** (previous).
 - Build and run Dotvar from source on Windows and Linux. Shortcuts use Ctrl, settings live in `%APPDATA%\Dotvar` or `$XDG_CONFIG_HOME/dotvar`, saving keeps file permissions, and Move to Trash uses the Recycle Bin or the freedesktop Trash.
 

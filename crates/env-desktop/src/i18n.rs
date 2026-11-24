@@ -287,4 +287,33 @@ mod shortcut_tests {
             "Copiar documento · Ctrl+Shift+C"
         );
     }
+
+    #[test]
+    fn reveal_all_tooltips_show_the_platform_shortcut() {
+        for (style, text) in [
+            (ShortcutStyle::Mac, "⌘⇧H"),
+            (ShortcutStyle::Other, "Ctrl+Shift+H"),
+        ] {
+            assert_eq!(shortcut_label(style, true, "H"), text);
+            let rendered = |key: &str, locale: &str| {
+                rust_i18n::t!(key, locale = locale, shortcut = text).into_owned()
+            };
+            assert_eq!(
+                rendered("editor.show_all_values_shortcut", "en"),
+                format!("Show all values · {text}")
+            );
+            assert_eq!(
+                rendered("editor.hide_all_values_shortcut", "en"),
+                format!("Hide all values · {text}")
+            );
+            assert_eq!(
+                rendered("editor.show_all_values_shortcut", "es"),
+                format!("Mostrar todos los valores · {text}")
+            );
+            assert_eq!(
+                rendered("editor.hide_all_values_shortcut", "es"),
+                format!("Ocultar todos los valores · {text}")
+            );
+        }
+    }
 }
